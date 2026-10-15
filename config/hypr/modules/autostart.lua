@@ -11,8 +11,13 @@ local function exists(path)
 end
 
 hl.on("hyprland.start", function()
-    -- Portales y servicios D-Bus/systemd necesitan las variables de la sesión
-    hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE HYPRLAND_INSTANCE_SIGNATURE DISPLAY")
+    -- Portales y servicios D-Bus/systemd necesitan las variables de la sesión. Las de Qt, cursor y
+    -- menú también: las apps que se abren vía D-Bus/systemd (p. ej. Gwenview desde Dolphin) no
+    -- heredan el entorno de Hyprland y arrancaban con el tema claro.
+    hl.exec_cmd("dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP "
+        .. "XDG_SESSION_TYPE XDG_SESSION_DESKTOP HYPRLAND_INSTANCE_SIGNATURE DISPLAY "
+        .. "QT_QPA_PLATFORM QT_QPA_PLATFORMTHEME QT_WAYLAND_DISABLE_WINDOWDECORATION XDG_MENU_PREFIX "
+        .. "XCURSOR_THEME XCURSOR_SIZE HYPRCURSOR_THEME HYPRCURSOR_SIZE GDK_BACKEND")
 
     hl.exec_cmd(ctx.ctl("start"))
     hl.exec_cmd("sh -c 'command -v awww-daemon >/dev/null && awww-daemon & sleep 1; " .. ctx.ctl("wallpaper") .. "'")
