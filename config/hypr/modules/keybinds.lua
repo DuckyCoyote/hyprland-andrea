@@ -210,6 +210,21 @@ hl.define_submap("hd-switcher", function()
     hl.bind("Escape", close)
 end)
 
+-- Modo «power» (menú de energía): Tab/flechas recorren las opciones y, en la confirmación,
+-- alternan Cancelar/Sí; Enter elige; Escape sale de la confirmación o cierra el menú.
+hl.define_submap("hd-power", function()
+    for _, key in ipairs({ "Tab", "Down", "Right" }) do
+        hl.bind(key, exec(ctx.ctl("popup power-nav next")), { repeating = true })
+    end
+    for _, key in ipairs({ "SHIFT + Tab", "Up", "Left" }) do
+        hl.bind(key, exec(ctx.ctl("popup power-nav prev")), { repeating = true })
+    end
+    for _, key in ipairs({ "Return", "KP_Enter", "space" }) do
+        hl.bind(key, exec(ctx.ctl("popup power-select")))
+    end
+    hl.bind("Escape", exec(ctx.ctl("popup power-back")))
+end)
+
 local runtime = (os.getenv("XDG_RUNTIME_DIR") or "/tmp") .. "/hyprland-desktop"
 os.execute("mkdir -p '" .. runtime .. "'")
 local f = io.open(runtime .. "/keybinds.json", "w")

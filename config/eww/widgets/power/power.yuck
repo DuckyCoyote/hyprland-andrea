@@ -1,5 +1,7 @@
 ;; Menú de energía (05_power.png / mockup). Las acciones que pueden hacer perder trabajo
 ;; (cerrar sesión, reiniciar, apagar) piden confirmación en la propia fila.
+;; Teclado (modo «power» del compositor): Tab/flechas mueven la selección (popup.sel y, en la
+;; confirmación, popup.csel), Enter elige y Escape cancela o cierra.
 
 (defwindow power
   :geometry (geometry :x "10px" :y "0px" :width "320px" :anchor "top right")
@@ -21,12 +23,12 @@
 (defwidget power-row [action icon label confirm ?danger]
   (box :orientation "v" :space-evenly false
     (eventbox :cursor "pointer" :visible {popup.confirm != action}
-      (button :class "power-row ${danger == true ? 'danger' : ''}"
+      (button :class "power-row ${danger == true ? 'danger' : ''} ${popup.sel == action ? 'selected' : ''}"
               :onclick {confirm ? "desktopctl popup confirm ${action}" : "desktopctl system power ${action}"}
         (box :space-evenly false :spacing 14
           (label :class "glyph" :text icon)
           (label :halign "start" :text label))))
     (box :visible {popup.confirm == action} :class "power-confirm" :space-evenly false :spacing 8
       (label :hexpand true :halign "start" :text "¿${label}?")
-      (text-button :label "Cancelar" :onclick "desktopctl popup confirm")
-      (text-button :label "Sí" :kind "danger" :onclick "desktopctl system power ${action}"))))
+      (text-button :label "Cancelar" :kind {popup.csel == "cancel" ? "selected" : ""} :onclick "desktopctl popup confirm")
+      (text-button :label "Sí" :kind {popup.csel == "yes" ? "danger selected" : "danger"} :onclick "desktopctl system power ${action}"))))

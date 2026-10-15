@@ -13,6 +13,7 @@
   @include transition(background-color);
   .glyph { font-size: $font-lg; color: $fg-dim; }
   &:hover { background-color: $hover; }
+  &:focus { box-shadow: inset 0 0 0 1px $accent; }
   &.selected { background-color: $surface0; .glyph { color: $accent; } label { font-weight: bold; } }
 }
 .app-grid { padding-right: 6px; }
@@ -32,6 +33,9 @@
   padding: 0 4px;
   border-radius: $radius-pill;
   label { font-size: $font-size + 5px; color: $fg-muted; }
-  &:hover { background-color: $hover-strong; label { color: $icon-yellow; } }
   &.on label { color: $icon-yellow; }
 }
+.fav-star-hit:hover .fav-star { background-color: $hover-strong; label { color: $icon-yellow; } }
+// Apps y categorías son checkbox (ver launcher.yuck): se oculta el indicador de GTK (con
+// tamaño 0 GTK3 usa el de serie, 16px, y desplaza el contenido; con 1px y margen -1px no ocupa nada)
+.category check, .app-tile check { min-width: 1px; min-height: 1px; margin: 0 -1px 0 0; padding: 0; -gtk-icon-source: none; background: none; border: none; }

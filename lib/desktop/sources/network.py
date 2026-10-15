@@ -18,6 +18,10 @@ def wifi_glyph(signal: int, locked: bool = False) -> str:
     return table[min(4, max(0, signal // 20))]
 
 
+def _secrets_missing(msg: str) -> bool:
+    return "Secrets were required" in msg or "no secrets" in msg.lower() or "no-secrets" in msg
+
+
 class NetworkSource(Source):
     topic = "network"
 
@@ -120,8 +124,17 @@ class NetworkSource(Source):
         if net and net["known"]:
             self._set(busy=ssid, status=f"Conectando a {ssid}…")
             code, _, err = await run("nmcli", "connection", "up", "id", ssid, timeout=45)
-            self._set(status=f"Conectado a {ssid}" if code == 0 else "", error="" if code == 0 else err.strip())
-            return "ok" if code == 0 else err
+            if code == 0:
+                self._set(status=f"Conectado a {ssid}")
+                return "ok"
+            if _secrets_missing(err):
+                # Perfil cuya contraseña guarda un agente (p. ej. KWallet de Plasma) que no corre en
+                # esta sesión: NetworkManager no la obtiene. Se pide de nuevo y se recrea el perfil.
+                self.pending = ssid
+                self._set(status=f"Introduce la contraseña de {ssid}")
+                return "password"
+            self._set(error=err.strip())
+            return err
         if net and net["secure"]:
             self.pending = ssid
             self._set(status=f"Introduce la contraseña de {ssid}")
@@ -130,6 +143,9 @@ class NetworkSource(Source):
 
     async def cmd_password(self, ssid: str, password: str) -> str:
         self.pending = ""
+        # Un perfil previo (olvidado a medias o con secretos de un agente ausente) haría que
+        # `device wifi connect` lo reutilizara y volviera a fallar; se parte de cero.
+        await self._delete_profiles(ssid)
         return await self._connect_new(ssid, password)
 
     async def cmd_cancel(self) -> None:
@@ -145,13 +161,24 @@ class NetworkSource(Source):
             self._set(status=f"Conectado a {ssid}")
             return "ok"
         msg = (err or out).strip().splitlines()[-1] if (err or out).strip() else "error desconocido"
-        if "Secrets were required" in msg or "802-1x" in msg or "psk" in msg.lower():
+        if _secrets_missing(msg) or "802-1x" in msg or "psk" in msg.lower():
             msg = "Contraseña incorrecta o rechazada"
             # nmcli crea un perfil aunque falle la autenticación; lo eliminamos para no dejar basura
-            await run("nmcli", "connection", "delete", "id", ssid)
+            await self._delete_profiles(ssid)
         log(f"wifi: no se pudo conectar a {ssid}: {msg}")
         self._set(error=msg)
         return msg
+
+    async def _delete_profiles(self, ssid: str) -> None:
+        """Borra los perfiles Wi-Fi de ese SSID (el nombre del perfil puede no coincidir)."""
+        _, out, _ = await run("nmcli", "-t", "-f", "UUID,TYPE", "connection", "show")
+        for line in out.splitlines():
+            uuid, typ = (split_nmcli(line) + ["", ""])[:2]
+            if "wireless" not in typ:
+                continue
+            _, got, _ = await run("nmcli", "-g", "802-11-wireless.ssid", "connection", "show", "uuid", uuid)
+            if got.strip() == ssid:
+                await run("nmcli", "connection", "delete", "uuid", uuid)
 
     async def cmd_disconnect(self) -> None:
         data = self.hub.get("network") or {}

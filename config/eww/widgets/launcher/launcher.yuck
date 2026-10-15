@@ -1,7 +1,10 @@
 ;; Lanzador de aplicaciones (launcher.png / mockup)
 ;; - Búsqueda mientras se escribe: filtro jq sobre la lista publicada por desktopd (sin procesos).
 ;; - Teclado: escribir filtra, Enter abre el primer resultado, Tab/flechas recorren la cuadrícula,
-;;   Escape cierra (modo de teclado del compositor).
+;;   Enter/Espacio abren la app con el foco, Escape cierra (modo de teclado del compositor).
+;; - Las apps y categorías son `checkbox` sin indicador, no `button`: el `button` de Eww 0.6
+;;   solo ejecuta onclick con el ratón; el checkbox (señal «toggled») responde también a Enter/Espacio.
+;;   Cada activación alterna su estado, así que onchecked y onunchecked hacen lo mismo.
 ;; - Favoritas: la estrella de cada app (o clic derecho) la añade/quita. El lanzador abre en
 ;;   Favoritas (desktopd elige la categoría al abrirlo); al escribir se busca en todas las apps.
 
@@ -28,9 +31,10 @@
       (box :class "categories" :orientation "v" :space-evenly false :spacing 2
         (for c in {apps.categories ?: []}
           (eventbox :cursor "pointer"
-            (button :class "category ${launcher_cat == c.id ? 'selected' : ''}"
-                    :onclick "${EWW_CMD} update launcher_cat=${c.id}"
-              (box :space-evenly false :spacing 10
+            (checkbox :class "category ${launcher_cat == c.id ? 'selected' : ''}"
+                      :onchecked "${EWW_CMD} update launcher_cat=${c.id}"
+                      :onunchecked "${EWW_CMD} update launcher_cat=${c.id}"
+              (box :space-evenly false :spacing 10 :hexpand true
                 (label :class "glyph" :text {c.glyph})
                 (label :text {c.label}))))))
       ;; Cuadrícula de 4 columnas
@@ -44,16 +48,17 @@
             (box :space-evenly false :spacing 8 :halign "start"
               (for app in row
                 (overlay
-                  (eventbox :cursor "pointer"
-                    (button :class "app-tile ${app.fav ? 'fav' : ''}" :tooltip {app.name}
-                            :onclick "desktopctl apps launch '${app.id}' ; ${EWW_CMD} update launcher_query=''"
-                            :onrightclick "desktopctl apps favorite '${app.id}'"
-                      (box :orientation "v" :space-evenly false :spacing 6
+                  (eventbox :cursor "pointer" :onrightclick "desktopctl apps favorite '${app.id}'"
+                    (checkbox :class "app-tile ${app.fav ? 'fav' : ''}" :tooltip {app.name}
+                              :onchecked "desktopctl apps launch '${app.id}' ; ${EWW_CMD} update launcher_query=''"
+                              :onunchecked "desktopctl apps launch '${app.id}' ; ${EWW_CMD} update launcher_query=''"
+                      (box :orientation "v" :space-evenly false :spacing 6 :hexpand true
                         (image :path {(app.icon ?: "") != "" ? app.icon : "${EWW_CONFIG_DIR}/../../assets/icons/blank.png"} :image-width 44 :image-height 44)
                         (label :class "app-name" :limit-width 11 :text {app.name}))))
-                  ;; estrella de favorita en la esquina superior derecha
-                  (eventbox :cursor "pointer" :halign "end" :valign "start"
-                    (button :class "fav-star ${app.fav ? 'on' : ''}"
+                  ;; estrella de favorita en la esquina superior derecha. Es un eventbox (no un
+                  ;; botón) para que Tab no se detenga en ella: con teclado solo se recorren las apps.
+                  (eventbox :class "fav-star-hit" :cursor "pointer" :halign "end" :valign "start"
                             :tooltip {app.fav ? "Quitar de favoritas" : "Añadir a favoritas"}
                             :onclick "desktopctl apps favorite '${app.id}'"
+                    (box :class "fav-star ${app.fav ? 'on' : ''}"
                       (label :text {app.fav ? "󰓎" : "󰓒"}))))))))))))

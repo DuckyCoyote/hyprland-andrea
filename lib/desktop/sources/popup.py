@@ -14,7 +14,10 @@ from ..daemon import Source
 POPUPS = {"launcher", "settings", "power", "network", "audio", "updates", "media", "weather", "calendar",
           "notifications", "keymap", "switcher"}
 # Modo de teclado del compositor mientras el popup está abierto (por defecto: Escape cierra)
-KEY_MODES = {"switcher": "switcher"}
+KEY_MODES = {"switcher": "switcher", "power": "power"}
+# Menú de energía: orden de las filas y acciones que piden confirmación (power.yuck)
+POWER_ACTIONS = ["lock", "suspend", "hibernate", "logout", "reboot", "poweroff"]
+POWER_CONFIRM = {"logout", "reboot", "poweroff"}
 CLOSER = "popup-closer"
 
 
@@ -23,7 +26,7 @@ class PopupSource(Source):
 
     def __init__(self, hub) -> None:
         super().__init__(hub)
-        self.state = {"open": "", "monitor": "", "tab": "", "confirm": ""}
+        self.state = {"open": "", "monitor": "", "tab": "", "confirm": "", "sel": "", "csel": ""}
 
     async def start(self) -> None:
         self.publish(self.state)
@@ -53,7 +56,8 @@ class PopupSource(Source):
         # la dejaría donde está: se cierra cualquier popup salvo que sea el mismo en el mismo monitor.
         if self.state["open"] != name or self.state["monitor"] != monitor:
             await self._close_windows()
-        self.state.update(open=name, monitor=monitor, tab=tab or self.state["tab"] if name == self.state["open"] else tab, confirm="")
+        self.state.update(open=name, monitor=monitor, tab=tab or self.state["tab"] if name == self.state["open"] else tab, confirm="",
+                          sel=self._power_actions()[0] if name == "power" else "", csel="")
         self.publish(dict(self.state))
         if config.load().get("popups", {}).get("close_on_click_outside", True):
             await asyncio.to_thread(eww.open_window, "popup_closer", CLOSER, screen)
@@ -108,6 +112,49 @@ class PopupSource(Source):
         self.publish(dict(self.state))
 
     async def cmd_confirm(self, action: str = "") -> None:
-        """Paso de confirmación genérico (lo usa el menú de energía)."""
-        self.state["confirm"] = action
+        """Paso de confirmación genérico (lo usa el menú de energía). Con teclado, la opción
+        preseleccionada es «Cancelar»."""
+        self.state.update(confirm=action, csel="cancel" if action else "")
+        if action:
+            self.state["sel"] = action
         self.publish(dict(self.state))
+
+    # ---- teclado del menú de energía (modo «power» del compositor) -----------
+    def _power_actions(self) -> list[str]:
+        can_hibernate = getattr(self.hub.sources.get("system"), "can_hibernate", False)
+        return [a for a in POWER_ACTIONS if a != "hibernate" or can_hibernate]
+
+    async def cmd_power_nav(self, direction: str = "next") -> str:
+        """Tab/flechas: recorre las filas o, en la confirmación, alterna Cancelar/Sí."""
+        if self.state["confirm"]:
+            self.state["csel"] = "yes" if self.state["csel"] == "cancel" else "cancel"
+        else:
+            actions = self._power_actions()
+            i = actions.index(self.state["sel"]) if self.state["sel"] in actions else -1
+            i = (i + (-1 if direction == "prev" else 1)) % len(actions)
+            self.state["sel"] = actions[i]
+        self.publish(dict(self.state))
+        return self.state["csel"] or self.state["sel"]
+
+    async def cmd_power_select(self) -> str:
+        """Enter: ejecuta la fila elegida (o pide confirmación) o la opción de la confirmación."""
+        action = self.state["confirm"]
+        if action:
+            if self.state["csel"] == "yes":
+                return await self.hub.sources["system"].cmd_power(action)
+            await self.cmd_confirm()
+            return "cancelado"
+        action = self.state["sel"]
+        if action in POWER_CONFIRM:
+            await self.cmd_confirm(action)
+            return f"¿{action}?"
+        if action in POWER_ACTIONS:
+            return await self.hub.sources["system"].cmd_power(action)
+        return "nada que seleccionar"
+
+    async def cmd_power_back(self) -> str:
+        """Escape: sale de la confirmación o, si no la hay, cierra el menú."""
+        if self.state["confirm"]:
+            await self.cmd_confirm()
+            return "cancelado"
+        return await self.cmd_close()
