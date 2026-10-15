@@ -5,11 +5,11 @@ diseño basado en `docs/references/mockup.png` (barra de cápsulas inspirada en 
 *Andrea* de [gh0stzk](https://github.com/gh0stzk/dotfiles)). Pensado para Arch Linux.
 
 ![mockup](docs/references/mockup.png)
-![mockup](docs/references/1-example.png)
-![mockup](docs/references/2-config.pnt)
-![mockup](docs/references/3-net.png)
-![mockup](docs/references/4-player.png)
-![mockup](docs/references/5-weather.png)
+![example](docs/references/1-example.png)
+![config](docs/references/2-config.png)
+![net](docs/references/3-net.png)
+![player](docs/references/4-player.png)
+![weather](docs/references/5-weather.png)
 
 ## Qué incluye
 
