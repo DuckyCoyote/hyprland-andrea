@@ -1,0 +1,51 @@
+;; Reproductor multimedia expandido (MPRIS)
+
+(defwindow media
+  :geometry (geometry :x "560px" :y "0px" :width "420px" :anchor "top right")
+  :stacking "overlay"
+  :focusable false
+  :namespace "hd-popup"
+  (popup-frame :name "media-popup"
+    (box :visible {media.active != true} :orientation "v" :space-evenly false :spacing 10 :class "media-empty"
+      (label :class "glyph huge c-overlay2" :text "󰝛")
+      (label :text {media.available == false ? (media.error ?: "playerctl no disponible") : "No hay ningún reproductor activo"}))
+    (box :visible {media.active == true} :orientation "v" :space-evenly false :spacing 12
+      (box :space-evenly false :spacing 16
+        (box :class "media-cover big ${media.cover == '' ? 'empty' : ''}"
+             :style {media.cover != "" ? "background-image: url('${media.cover}');" : ""}
+          (label :class "glyph huge" :visible {media.cover == ""} :text {media.player_icon ?: "󰝚"}))
+        (box :orientation "v" :space-evenly false :valign "center" :hexpand true :spacing 2
+          (label :class "media-big-title" :halign "start" :limit-width 20 :wrap true :text {media.title ?: ""})
+          (label :class "media-big-artist" :halign "start" :limit-width 26 :text {media.artist ?: ""})
+          (label :class "media-big-album" :halign "start" :limit-width 26 :text {media.album ?: ""})))
+      ;; Progreso
+      (box :orientation "v" :space-evenly false :visible {(media.length ?: 0) > 0}
+        (scale :class "slider progress" :min 0 :max 100.5
+               :value {(media.length ?: 0) > 0 ? round(media_position * 100 / media.length, 1) : 0}
+               :onchange "desktopctl media seek {}")
+        (box :class "media-times"
+          (label :halign "start" :text {formattime(media_position, "%M:%S", "UTC")})
+          (label :halign "end" :text {media.length_str ?: "0:00"})))
+      ;; Controles
+      (box :class "media-big-controls" :halign "center" :space-evenly false :spacing 18
+        (icon-button :icon "󰒝" :onclick "desktopctl media shuffle" :tooltip "Aleatorio"
+                     :class "flat ${media.shuffle == true ? 'on' : ''} ${media.shuffle_supported == true ? '' : 'disabled'}")
+        (icon-button :icon "󰒮" :onclick "desktopctl media previous" :class "flat" :tooltip "Anterior")
+        (icon-button :icon {media.playing == true ? "󰏤" : "󰐊"} :onclick "desktopctl media toggle" :class "play-big" :tooltip "Reproducir/Pausar")
+        (icon-button :icon "󰒭" :onclick "desktopctl media next" :class "flat" :tooltip "Siguiente")
+        (icon-button :icon {media.loop == "Track" ? "󰑘" : "󰑖"} :onclick "desktopctl media loop"
+                     :tooltip "Repetir: ${media.loop == 'Track' ? 'pista' : media.loop == 'Playlist' ? 'lista' : 'no'}"
+                     :class "flat ${media.loop != 'None' ? 'on' : ''} ${media.loop_supported == true ? '' : 'disabled'}"))
+      ;; Volumen del sistema
+      (slider-row :icon {audio.sink?.glyph ?: "󰕾"} :value {audio.sink?.volume ?: 0}
+                  :onchange "desktopctl audio set sink {}" :icon_click "desktopctl audio mute sink" :muted {audio.sink?.muted ?: false})
+      ;; Selección de reproductor
+      (box :class "card player-select" :space-evenly false :spacing 10
+        (label :class "glyph c-overlay2" :text "󰐌")
+        (label :text "Reproductor" :hexpand true :halign "start")
+        (for pl in {media.players ?: []}
+          (eventbox :cursor "pointer"
+            (button :class "player-chip ${pl.selected ? 'selected' : ''}" :onclick "desktopctl media select '${pl.name}'" :tooltip {pl.name}
+              (box :space-evenly false :spacing 6
+                (label :class "glyph c-green" :text {pl.icon})
+                (label :text {pl.label})))))))))

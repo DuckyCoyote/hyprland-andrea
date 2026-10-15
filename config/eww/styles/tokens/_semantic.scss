@@ -1,0 +1,51 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Capa semántica: traduce los tokens crudos (_generated.scss) a roles de interfaz.
+// Los estilos de los widgets SOLO usan estos nombres; nunca colores literales.
+// ─────────────────────────────────────────────────────────────────────────────
+
+$bg:          rgba($base, $surface-opacity);     // fondo de grupos de la barra y paneles
+$bg-alt:      rgba($mantle, $surface-opacity);   // tarjetas dentro de un panel
+$bg-sunken:   rgba($crust, $surface-opacity);    // campos de texto, pistas de sliders
+$hover:       rgba($surface0, 1);
+$hover-strong: rgba($surface1, 1);
+$border:      $surface1;
+$border-strong: $surface2;
+$fg:          $text;
+$fg-dim:      $subtext0;
+$fg-muted:    $overlay1;
+$on-accent:   $crust;
+$danger:      $red;
+$success:     $green;
+$warning:     $yellow;
+
+$radius-sm:   max($radius - 4px, 2px);
+$radius-lg:   $radius + 4px;
+$radius-pill: 999px;
+$gap:         $spacing;
+$gap-sm:      max(calc($spacing / 2), 2px);
+$gap-lg:      $spacing * 1.5;
+
+$font-sm:     $font-size - 2px;
+$font-lg:     $font-size + 3px;
+$font-xl:     $font-size + 10px;
+$glyph-size:  $font-size + 5px;
+
+// Colores con nombre disponibles como clase utilitaria .c-<nombre>
+$named-colors: (
+  "rosewater": $rosewater, "flamingo": $flamingo, "pink": $pink, "mauve": $mauve, "red": $red,
+  "maroon": $maroon, "peach": $peach, "yellow": $yellow, "green": $green, "teal": $teal, "sky": $sky,
+  "sapphire": $sapphire, "blue": $blue, "lavender": $lavender, "text": $text, "subtext0": $subtext0,
+  "overlay2": $overlay2, "accent": $accent
+);
+
+@mixin elevation {
+  @if $shadows {
+    box-shadow: 0 3px 8px rgba($crust, 0.45);
+  }
+}
+
+@mixin transition($props...) {
+  transition-property: $props;
+  transition-duration: $anim-duration;
+  transition-timing-function: ease-out;
+}

@@ -1,0 +1,17 @@
+;; Calendario (clic en la fecha de la barra)
+
+(defwindow calendar
+  :geometry (geometry :x "200px" :y "0px" :width "320px" :anchor "top left")
+  :stacking "overlay"
+  :focusable false
+  :namespace "hd-popup"
+  (popup-frame :name "calendar-popup"
+    (panel-header :icon "󰃭" :title {clock.date} :color "peach"
+      (close-button))
+    (box :space-evenly false :spacing 16 :class "calendar-head"
+      (label :class "calendar-day" :text {clock.day})
+      (box :orientation "v" :space-evenly false :valign "center"
+        (label :class "calendar-month" :halign "start" :text {clock.month})
+        (label :class "calendar-year" :halign "start" :text {clock.year})))
+    (box :class "card"
+      (calendar :show-heading true :show-day-names true :show-week-numbers false))))

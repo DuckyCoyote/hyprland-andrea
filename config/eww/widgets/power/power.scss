@@ -1,0 +1,20 @@
+// Energía
+.power-row {
+  padding: 12px 16px;
+  border-radius: $radius;
+  background-color: $bg-alt;
+  border: $border-width solid $border;
+  @include transition(background-color);
+  .glyph { font-size: $font-lg + 3px; min-width: 24px; }
+  &:hover { background-color: $hover; }
+  &.danger { background-color: $red; border-color: $red; label { color: $on-accent; font-weight: bold; } }
+  &.danger:hover { background-color: mix($red, $text, 85%); }
+}
+.power-confirm {
+  padding: 8px 8px 8px 16px;
+  border-radius: $radius;
+  border: $border-width solid $red;
+  background-color: rgba($red, 0.1);
+  label { font-weight: bold; }
+  .text-btn { padding: 6px 14px; }
+}

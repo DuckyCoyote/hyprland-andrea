@@ -1,0 +1,32 @@
+// Reproductor expandido
+.media-cover.big {
+  min-width: 128px;
+  min-height: 128px;
+  border-radius: $radius;
+  @include elevation;
+}
+.glyph.huge { font-size: 44px; }
+.media-empty { padding: $gap * 2; }
+.media-big-title { font-size: $font-lg + 3px; font-weight: bold; }
+.media-big-artist { color: $fg-dim; font-size: $font-lg - 1px; }
+.media-big-album { color: $fg-muted; }
+.media-times label { font-size: $font-sm; color: $fg-dim; }
+.media-big-controls {
+  .icon-btn .glyph { font-size: $font-xl; }
+  .icon-btn.on .glyph { color: $green; }
+  .icon-btn.disabled .glyph { color: $surface2; }
+  .play-big {
+    min-width: 58px;
+    min-height: 58px;
+    background-color: $pink;
+    .glyph { color: $on-accent; font-size: $font-xl + 4px; }
+    &:hover { background-color: mix($pink, $text, 80%); }
+  }
+}
+.player-select { padding: 6px 12px; }
+.player-chip {
+  padding: 4px 10px;
+  border-radius: $radius-pill;
+  &:hover { background-color: $hover; }
+  &.selected { background-color: $surface0; }
+}

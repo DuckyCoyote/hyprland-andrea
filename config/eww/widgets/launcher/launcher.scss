@@ -1,0 +1,29 @@
+// Lanzador
+.search {
+  background-color: $bg-sunken;
+  border: $border-width solid $border-strong;
+  border-radius: $radius;
+  padding: 10px 14px;
+  .search-input { background: none; border: none; padding: 0; font-size: $font-lg - 1px; }
+}
+.categories { min-width: 150px; }
+.category {
+  padding: 7px 12px;
+  border-radius: $radius-sm;
+  @include transition(background-color);
+  .glyph { font-size: $font-lg; color: $fg-dim; }
+  &:hover { background-color: $hover; }
+  &.selected { background-color: $surface0; .glyph { color: $accent; } label { font-weight: bold; } }
+}
+.app-grid { padding-right: 6px; }
+.app-tile {
+  padding: 12px 6px;
+  min-width: 104px;
+  border-radius: $radius;
+  background-color: $bg-alt;
+  border: $border-width solid $border;
+  @include transition(background-color, border-color);
+  &:hover, &:focus { background-color: $hover; border-color: $accent; }
+  &.fav { border-color: rgba($pink, 0.6); }
+  .app-name { font-size: $font-sm; }
+}

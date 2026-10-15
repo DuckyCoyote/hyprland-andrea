@@ -1,0 +1,32 @@
+{
+  "name": "Monocromático",
+  "variant": "dark",
+  "palette": {
+    "rosewater": "#e0e0e0",
+    "flamingo": "#d4d4d4",
+    "pink": "#cfcfcf",
+    "mauve": "#bdbdbd",
+    "red": "#c9a3a3",
+    "maroon": "#c2a8a8",
+    "peach": "#cfc2b0",
+    "yellow": "#d6d1bd",
+    "green": "#b3c2b3",
+    "teal": "#b8c4c4",
+    "sky": "#c4c9cc",
+    "sapphire": "#b0b8bf",
+    "blue": "#c0c4c8",
+    "lavender": "#d0d0d0",
+    "text": "#e4e4e4",
+    "subtext1": "#c8c8c8",
+    "subtext0": "#aaaaaa",
+    "overlay2": "#8f8f8f",
+    "overlay1": "#7a7a7a",
+    "overlay0": "#666666",
+    "surface2": "#4a4a4a",
+    "surface1": "#383838",
+    "surface0": "#282828",
+    "base": "#1a1a1a",
+    "mantle": "#141414",
+    "crust": "#0d0d0d"
+  }
+}

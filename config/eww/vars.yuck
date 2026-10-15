@@ -1,0 +1,31 @@
+;; ─────────────────────────────────────────────────────────────────────────────
+;; Estado compartido. Cada variable es UNA suscripción al daemon (desktopd), común
+;; a todas las barras y popups: no se duplican procesos por monitor.
+;; Los widgets nunca llaman a hyprctl/nmcli/wpctl para LEER estado: lo leen de aquí.
+;; ─────────────────────────────────────────────────────────────────────────────
+
+(deflisten wm         :initial `{"workspaces":{},"monitors":[],"has_workspaces":false}` "desktop-sub wm")
+(deflisten popup      :initial `{"open":"","monitor":"","tab":"","confirm":""}`        "desktop-sub popup")
+(deflisten appearance :initial `{"themes":[],"accents":[],"fonts":[]}`                   "desktop-sub appearance")
+(deflisten audio      :initial `{"available":false}`                                     "desktop-sub audio")
+(deflisten network    :initial `{"available":false,"networks":[]}`                       "desktop-sub network")
+(deflisten media      :initial `{"available":false,"active":false,"players":[]}`         "desktop-sub media")
+(deflisten updates    :initial `{"count":0,"packages":[],"status":"idle"}`               "desktop-sub updates")
+(deflisten weather    :initial `{"available":false}`                                     "desktop-sub weather")
+(deflisten system     :initial `{"battery":{"present":false},"services":[]}`             "desktop-sub system")
+(deflisten notifications :initial `{"toasts":[],"history":[],"count":0,"dnd":false}` "desktop-sub notifications")
+(deflisten apps       :initial `{"apps":[],"categories":[]}`                             "desktop-sub apps")
+
+;; Reloj: una sola consulta por minuto (formato en el idioma del sistema)
+(defpoll clock :interval "5s" :initial `{"time":"--:--","date":""}`
+  `date '+{"time":"%H:%M","date":"%A, %B %d","day":"%d","month":"%B","year":"%Y"}'`)
+
+;; Posición del reproductor: solo mientras el panel multimedia está abierto
+(defpoll media_position :interval "1s" :initial "0" :run-while {popup.open == "media" && media.active}
+  `playerctl -p "$(cat "$XDG_RUNTIME_DIR/hyprland-desktop/media-player" 2>/dev/null)" position 2>/dev/null | cut -d. -f1 || echo 0`)
+
+;; Estado local de la interfaz
+(defvar launcher_query "")
+(defvar launcher_cat "all")
+(defvar audio_tab "out")
+(defvar weather_tab "hours")

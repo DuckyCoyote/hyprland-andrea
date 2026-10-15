@@ -1,0 +1,86 @@
+{
+  "_comment": "Configuración declarativa de hyprland-desktop. Copia de usuario: ~/.config/hyprland-desktop/settings.json. Tras editar: desktopctl apply",
+
+  "apps": {
+    "terminal": "kitty",
+    "browser": "firefox",
+    "file_manager": "dolphin",
+    "editor": "code",
+    "system_monitor": "kitty -e htop"
+  },
+
+  "quick_launch": [
+    { "name": "Sistema",     "icon": "assets:zombie.png",   "exec": "desktopctl popup toggle settings", "tooltip": "Información del sistema" },
+    { "name": "Terminal",    "icon": "assets:terminal.png", "exec": "@terminal",     "tooltip": "Terminal" },
+    { "name": "Navegador",   "icon": "assets:firefox.png",  "exec": "@browser",      "tooltip": "Navegador web" },
+    { "name": "Archivos",    "icon": "assets:files.png",    "exec": "@file_manager", "tooltip": "Explorador de archivos" },
+    { "name": "Editor",      "icon": "assets:notes.png",    "exec": "@editor",       "tooltip": "Editor de código" },
+    { "name": "Discord",     "icon": "theme:discord",       "exec": "discord",       "tooltip": "Discord" }
+  ],
+
+  "monitors": [
+    { "name": "DP-1",     "mode": "1920x1080@144", "position": "1920x0", "scale": 1, "primary": true },
+    { "name": "HDMI-A-1", "mode": "1920x1080@60",  "position": "0x0",    "scale": 1 }
+  ],
+
+  "bar": {
+    "modules": ["launcher", "quicklaunch", "clock", "workspaces", "media", "tray", "system"],
+    "per_monitor": {
+      "HDMI-A-1": ["launcher", "clock", "workspaces", "system"]
+    }
+  },
+
+  "workspaces": {
+    "per_monitor": 6
+  },
+
+  "keyboard": {
+    "layout": "latam",
+    "variant": "",
+    "options": ""
+  },
+
+  "input": {
+    "sensitivity": -0.6,
+    "natural_scroll": false
+  },
+
+  "weather": {
+    "city": "Ciudad de México",
+    "latitude": 19.4326,
+    "longitude": -99.1332,
+    "units": "metric",
+    "refresh_minutes": 30
+  },
+
+  "updates": {
+    "refresh_minutes": 60,
+    "aur_helper": "auto"
+  },
+
+  "idle": {
+    "lock_minutes": 10,
+    "screen_off_minutes": 12,
+    "suspend_minutes": 0
+  },
+
+  "wallpaper": "",
+
+  "appearance": {
+    "theme": "mocha",
+    "accent": "mauve",
+    "font_family": "JetBrainsMono Nerd Font",
+    "font_size": 13,
+    "radius": 10,
+    "spacing": 8,
+    "border_width": 1,
+    "transparency": false,
+    "opacity": 0.92,
+    "shadows": true,
+    "animations": true
+  },
+
+  "popups": {
+    "close_on_click_outside": true
+  }
+}

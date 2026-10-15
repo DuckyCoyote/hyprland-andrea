@@ -1,0 +1,10 @@
+// Clima
+.weather-big-temp { font-size: 44px; font-weight: bold; }
+.weather-desc { color: $fg-dim; }
+.weather-big-glyph { font-size: 64px; margin-right: $gap; }
+.weather-details { min-width: 170px; .kv { padding: 2px; } .kv-key, .kv-value { font-size: $font-sm; } }
+.forecast { padding: 6px 0; }
+.forecast-label { font-size: $font-sm; color: $fg-dim; }
+.forecast-glyph { font-size: $font-xl + 4px; }
+.forecast-temp { font-weight: bold; }
+.forecast-min { font-size: $font-sm; color: $fg-muted; }

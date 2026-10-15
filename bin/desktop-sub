@@ -1,0 +1,18 @@
+#!/bin/sh
+# Suscripción de Eww a un tema del daemon: imprime una línea JSON por cambio.
+# Uso (en Eww): (deflisten audio :initial "{}" "desktop-sub audio")
+# Si el daemon no está en ejecución lo arranca; si se reinicia, vuelve a conectar.
+topic="$1"
+dir="${XDG_RUNTIME_DIR:-/tmp/hyprland-desktop-$(id -u)}/hyprland-desktop"
+here="$(dirname "$(readlink -f "$0")")"
+tries=0
+while :; do
+    if [ -S "$dir/$topic.sock" ]; then
+        socat -u "UNIX-CONNECT:$dir/$topic.sock" STDOUT 2>/dev/null
+        tries=0
+    else
+        tries=$((tries + 1))
+        [ "$tries" -eq 3 ] && "$here/desktopctl" start >/dev/null 2>&1
+    fi
+    sleep 1
+done

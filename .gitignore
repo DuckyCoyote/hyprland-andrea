@@ -1,0 +1,8 @@
+# Generados por `desktopctl apply` a partir de settings.json + themes/
+config/eww/styles/tokens/_generated.scss
+config/hypr/generated/
+config/hypr/hyprlock.conf
+config/hypr/hypridle.conf
+config/kitty/theme.conf
+*.tmp
+__pycache__/

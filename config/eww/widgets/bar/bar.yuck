@@ -1,0 +1,147 @@
+;; ─────────────────────────────────────────────────────────────────────────────
+;; Barra superior. Una ventana por monitor (la abre desktopd con --arg monitor=… y
+;; --arg modules=",launcher,clock,…," según settings.json → bar.per_monitor).
+;; ─────────────────────────────────────────────────────────────────────────────
+
+(defwindow bar [monitor modules]
+  :geometry (geometry :x "0" :y "0" :width "100%" :anchor "top center")
+  :stacking "fg"
+  :exclusive true
+  :focusable false
+  :namespace "hd-bar"
+  (bar :monitor monitor :modules modules))
+
+(defwidget bar [monitor modules]
+  (centerbox :class "bar"
+    (box :halign "start" :space-evenly false :spacing {appearance.spacing ?: 8}
+      (box :visible {matches(modules, ",launcher,")} (bar-launcher :monitor monitor))
+      (box :visible {matches(modules, ",quicklaunch,")} (bar-quicklaunch))
+      (box :visible {matches(modules, ",clock,")} (bar-clock :monitor monitor)))
+    (box :halign "center" :visible {matches(modules, ",workspaces,") && wm.has_workspaces}
+      (bar-workspaces :monitor monitor))
+    (box :halign "end" :space-evenly false :spacing {appearance.spacing ?: 8}
+      (box :visible {matches(modules, ",media,") && media.active == true} (bar-media :monitor monitor))
+      (box :visible {matches(modules, ",system,")} (bar-system :monitor monitor :modules modules)))))
+
+;; ── Grupo A: lanzador y accesos rápidos ─────────────────────────────────────
+(defwidget bar-launcher [monitor]
+  (box :class "bar-group launcher-group"
+    (eventbox :cursor "pointer"
+      (button :class "bar-launcher" :tooltip "Aplicaciones"
+              :onclick "desktopctl popup toggle launcher ${monitor}"
+              :onrightclick "desktopctl popup toggle settings ${monitor} appearance"
+        (image :class "launcher-icon" :path "${system.assets ?: ''}/icons/dashboard.png" :image-width 26 :image-height 26)))))
+
+(defwidget bar-quicklaunch []
+  (box :class "bar-group quicklaunch" :space-evenly false :spacing 14
+    (for item in {system.quick_launch ?: []}
+      (eventbox :cursor "pointer"
+        (button :class "quick-item" :tooltip {item.tooltip ?: item.name}
+                :onclick "desktopctl system quick ${item.index}"
+          (box
+            (image :visible {item.image != ""} :path {item.image} :image-width 22 :image-height 22)
+            (label :visible {item.image == ""} :class "glyph" :text {item.glyph ?: ""})))))))
+
+;; ── Grupo B: fecha y clima ──────────────────────────────────────────────────
+(defwidget bar-clock [monitor]
+  (box :class "bar-group clock-group" :space-evenly false :spacing 14
+    (eventbox :cursor "pointer"
+      (button :onclick "desktopctl popup toggle calendar ${monitor}" :tooltip "Calendario"
+        (box :orientation "v" :space-evenly false :valign "center"
+          (label :class "clock-time" :halign "start" :text {clock.time})
+          (label :class "clock-date" :halign "start" :text {clock.date}))))
+    (eventbox :cursor "pointer" :visible {weather.available == true}
+      (button :onclick "desktopctl popup toggle weather ${monitor}"
+              :tooltip "${weather.city ?: ''}: ${weather.desc ?: ''}"
+        (box :space-evenly false :spacing 8
+          (label :class "weather-glyph c-${weather.color ?: 'lavender'}" :text {weather.glyph ?: "󰖐"})
+          (label :class "weather-temp" :text "${weather.temp ?: '--'}${weather.unit ?: '°C'}"))))))
+
+;; ── Grupo C: espacios de trabajo ────────────────────────────────────────────
+(defwidget bar-workspaces [monitor]
+  (eventbox :onscroll "desktopctl wm scroll ${monitor} {}"
+    (box :class "bar-group workspaces" :space-evenly false :spacing 10
+      (for ws in {wm.workspaces[monitor] ?: []}
+        (eventbox :cursor "pointer"
+          ;; Iconos del rice Andrea: pacman = activo, fantasma = ocupado/urgente, círculo = vacío
+          (button :class "ws ${ws.state}" :onclick "desktopctl wm focus ${ws.id}"
+                  :tooltip "Espacio ${ws.label}${ws.state == 'urgent' ? ' (requiere atención)' : ''}"
+            (image :path "${system.assets ?: ''}/icons/${ws.state == 'active' ? 'pacman' : ws.state == 'empty' ? 'empty' : 'ghost'}.png"
+                   :image-width 22 :image-height 22)))))))
+
+;; ── Grupo D: reproductor ────────────────────────────────────────────────────
+(defwidget bar-media [monitor]
+  (box :class "bar-group media-group" :space-evenly false :spacing 10
+    (eventbox :cursor "pointer"
+      (button :onclick "desktopctl popup toggle media ${monitor}" :onrightclick "desktopctl media cycle"
+              :tooltip "${media.player_label ?: ''}: ${media.title ?: ''}"
+        (box :space-evenly false :spacing 10
+          (box :class "media-cover ${media.cover == '' ? 'empty' : ''}"
+               :style {media.cover != "" ? "background-image: url('${media.cover}');" : ""}
+            (label :class "glyph" :visible {media.cover == ""} :text {media.player_icon ?: "󰝚"}))
+          (box :orientation "v" :space-evenly false :valign "center" :class "media-text"
+            (label :class "media-title" :halign "start" :limit-width 16 :text {media.title ?: ""})
+            (label :class "media-artist" :halign "start" :limit-width 18 :text {media.artist ?: ""})))))
+    (box :class "media-controls" :space-evenly false :spacing 4
+      (icon-button :icon "󰒮" :onclick "desktopctl media previous" :class "flat" :tooltip "Anterior")
+      (icon-button :icon {media.playing == true ? "󰏤" : "󰐊"} :onclick "desktopctl media toggle" :class "flat play" :tooltip "Reproducir/Pausar")
+      (icon-button :icon "󰒭" :onclick "desktopctl media next" :class "flat" :tooltip "Siguiente"))))
+
+;; ── Grupo E: indicadores del sistema ────────────────────────────────────────
+(defwidget bar-system [monitor modules]
+  (box :class "bar-group system-group" :space-evenly false :spacing 14
+    ;; Bandeja del sistema (StatusNotifierItem: Discord, Steam…)
+    (box :visible {matches(modules, ",tray,")} :class "tray"
+      (systray :spacing 10 :icon-size 18 :prepend-new true))
+    ;; Notificaciones
+    (eventbox :cursor "pointer"
+      (button :onclick "desktopctl popup toggle notifications ${monitor}" :onrightclick "desktopctl notifications dnd toggle"
+              :tooltip {notifications.dnd == true ? "No molestar activado" : "${notifications.count ?: 0} notificaciones"}
+        (box :space-evenly false :spacing 4
+          (label :class "sys-glyph ${notifications.dnd == true ? 'c-overlay2' : 'c-peach'}"
+                 :text {notifications.dnd == true ? "󰂛" : (notifications.count ?: 0) > 0 ? "󰂞" : "󰂚"})
+          (label :class "pill" :visible {(notifications.count ?: 0) > 0} :valign "center" :text {notifications.count}))))
+    ;; Actualizaciones (Pacman)
+    (eventbox :cursor "pointer" :visible {updates.available ?: true}
+      (button :onclick "desktopctl popup toggle updates ${monitor}" :onrightclick "desktopctl updates refresh"
+              :tooltip {updates.status == "checking" ? "Buscando actualizaciones…" : "${updates.count} actualizaciones pendientes"}
+        (box :space-evenly false :spacing 6
+          (label :class "sys-glyph c-yellow ${updates.status == 'checking' ? 'busy' : ''}" :text "󰮯")
+          (label :class "pill ${updates.count > 0 ? 'accent' : ''}" :valign "center" :text {updates.count}))))
+    ;; Micrófono
+    (eventbox :cursor "pointer" :visible {audio.has_source == true}
+              :onscroll "desktopctl audio step source {}"
+      (button :onclick "desktopctl audio mute source" :onrightclick "desktopctl popup open audio ${monitor} in"
+              :tooltip "Micrófono: ${audio.source?.description ?: ''} (${audio.source?.muted == true ? 'silenciado' : audio.source?.volume + '%'})"
+        (label :class "sys-glyph ${audio.source?.muted == true ? 'c-red' : 'c-green'}" :text {audio.source?.glyph ?: "󰍬"})))
+    ;; Volumen
+    (eventbox :cursor "pointer" :visible {audio.available == true}
+              :onscroll "desktopctl audio step sink {}"
+      (button :onclick "desktopctl popup toggle audio ${monitor}" :onrightclick "desktopctl audio mute sink"
+              :tooltip "${audio.sink?.description ?: ''}"
+        (box :space-evenly false :spacing 6
+          (label :class "sys-glyph ${audio.sink?.muted == true ? 'c-red' : 'c-sky'}" :text {audio.sink?.glyph ?: "󰕾"})
+          (label :class "sys-value c-sky" :text "${audio.sink?.volume ?: 0}%"))))
+    ;; Batería (solo si existe)
+    (box :visible {system.battery?.present == true} :space-evenly false :spacing 6
+         :tooltip "${system.battery?.status ?: ''}"
+      (label :class "sys-glyph ${system.battery?.percent < 20 && system.battery?.charging != true ? 'c-red' : 'c-green'}"
+             :text {system.battery?.glyph ?: ""})
+      (label :class "sys-value" :text "${system.battery?.percent ?: ''}%"))
+    ;; Red
+    (eventbox :cursor "pointer" :visible {network.available == true}
+      (button :onclick "desktopctl popup toggle network ${monitor}"
+              :tooltip {network.kind == "wifi" ? "Wi-Fi: ${network.ssid}" : network.kind == "ethernet" ? "Ethernet: ${network.ethernet?.connection}" : "Sin conexión"}
+        (box :space-evenly false :spacing 6
+          (label :class "sys-glyph ${network.kind == 'disconnected' ? 'c-red' : 'c-blue'}" :text {network.glyph ?: "󰤭"})
+          (label :class "sys-value" :text {network.label ?: ""}))))
+    ;; Usuario / sesión
+    (eventbox :cursor "pointer"
+      (button :onclick "desktopctl popup toggle settings ${monitor} system" :tooltip "${system.user ?: ''}@${system.host ?: ''}"
+        (box :space-evenly false :spacing 8
+          (box :class "avatar small" :style "background-image: url('${system.avatar ?: ''}');")
+          (label :class "sys-value" :text {system.user ?: ""}))))
+    ;; Energía
+    (eventbox :cursor "pointer"
+      (button :class "power-button" :onclick "desktopctl popup toggle power ${monitor}" :tooltip "Energía"
+        (label :text "⏻")))))

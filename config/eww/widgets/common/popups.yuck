@@ -1,0 +1,8 @@
+;; Capa transparente detrás de los popups: un clic fuera del popup lo cierra.
+(defwindow popup_closer
+  :geometry (geometry :x "0" :y "0" :width "100%" :height "100%" :anchor "center")
+  :stacking "fg"
+  :exclusive false
+  :focusable false
+  :namespace "hd-closer"
+  (eventbox :class "closer" :onclick "desktopctl popup close" :onrightclick "desktopctl popup close"))

@@ -1,0 +1,21 @@
+// Notificaciones (avisos y bandeja)
+.toasts { margin: 6px 14px 10px 10px; }
+.notification {
+  background-color: $bg;
+  border: $border-width solid $border-strong;
+  border-left: 3px solid $accent;
+  border-radius: $radius;
+  padding: 10px 10px 10px 12px;
+  &.toast { @include elevation; }
+  &.critical { border-left-color: $red; }
+  .notify-glyph { font-size: $font-xl + 4px; }
+  .notify-icon-box { min-width: 40px; }
+  .notify-app { font-size: $font-sm; color: $fg-dim; }
+  .notify-time { font-size: $font-sm; color: $fg-muted; }
+  .notify-summary { font-weight: bold; }
+  .notify-body { color: $subtext1; font-size: $font-size - 1px; }
+  .text-btn { padding: 4px 10px; }
+}
+.notifications-popup .notification { background-color: $bg-alt; }
+.icon-btn.small { min-width: 24px; min-height: 24px; .glyph { font-size: $font-size; } }
+.notify-empty { padding: $gap * 3 0; }

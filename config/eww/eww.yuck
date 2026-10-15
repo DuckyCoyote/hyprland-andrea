@@ -1,0 +1,21 @@
+;; ─────────────────────────────────────────────────────────────────────────────
+;; hyprland-desktop — configuración de Eww
+;; Cada widget vive en widgets/<nombre>/ (estructura .yuck + estilos .scss).
+;; Para añadir uno nuevo: ver docs/widgets.md
+;; ─────────────────────────────────────────────────────────────────────────────
+
+(include "./vars.yuck")
+(include "./components/common.yuck")
+
+(include "./widgets/bar/bar.yuck")
+(include "./widgets/common/popups.yuck")
+(include "./widgets/launcher/launcher.yuck")
+(include "./widgets/settings/settings.yuck")
+(include "./widgets/power/power.yuck")
+(include "./widgets/network/network.yuck")
+(include "./widgets/audio/audio.yuck")
+(include "./widgets/updates/updates.yuck")
+(include "./widgets/media/media.yuck")
+(include "./widgets/weather/weather.yuck")
+(include "./widgets/calendar/calendar.yuck")
+(include "./widgets/notifications/notifications.yuck")

@@ -1,0 +1,195 @@
+;; Configuración (mockup "Ajustes / Settings"): navegación lateral + contenido.
+;; La pestaña Apariencia es el selector visual de temas (atajo SUPER+SHIFT+T).
+
+(defwindow settings
+  :geometry (geometry :x "10px" :y "0px" :width "720px" :height "540px" :anchor "top right")
+  :stacking "overlay"
+  :focusable false
+  :namespace "hd-popup"
+  (popup-frame :name "settings-popup"
+    (panel-header :icon "󰒓" :title "Configuración" :color "text"
+      (close-button))
+    (box :space-evenly false :spacing 14 :vexpand true
+      (box :class "settings-nav" :orientation "v" :space-evenly false :spacing 2
+        (settings-nav-item :id "system"     :icon "󰒓" :label "Sistema")
+        (settings-nav-item :id "appearance" :icon "󰏘" :label "Apariencia")
+        (settings-nav-item :id "displays"   :icon "󰍹" :label "Pantallas")
+        (settings-nav-item :id "sound"      :icon "󰕾" :label "Sonido")
+        (settings-nav-item :id "network"    :icon "󰖩" :label "Red")
+        (settings-nav-item :id "power"      :icon "󰂄" :label "Energía")
+        (settings-nav-item :id "apps"       :icon "󰀻" :label "Aplicaciones")
+        (settings-nav-item :id "keys"       :icon "󰌌" :label "Atajos")
+        (settings-nav-item :id "info"       :icon "󰋼" :label "Información"))
+      (scroll :vscroll true :hscroll false :hexpand true :vexpand true
+        (box :class "settings-content" :orientation "v" :space-evenly false
+          (box :visible {popup.tab == "system" || popup.tab == ""} (settings-system))
+          (box :visible {popup.tab == "appearance"} (settings-appearance))
+          (box :visible {popup.tab == "displays"} (settings-displays))
+          (box :visible {popup.tab == "sound"} (audio-content))
+          (box :visible {popup.tab == "network"} (network-content))
+          (box :visible {popup.tab == "power"} (settings-power))
+          (box :visible {popup.tab == "apps"} (settings-apps))
+          (box :visible {popup.tab == "keys"} (settings-keys))
+          (box :visible {popup.tab == "info"} (settings-info)))))))
+
+(defwidget settings-nav-item [id icon label]
+  (eventbox :cursor "pointer"
+    (button :class "nav-item ${popup.tab == id || (popup.tab == '' && id == 'system') ? 'selected' : ''}" :onclick "desktopctl popup tab ${id}"
+      (box :space-evenly false :spacing 12
+        (label :class "glyph" :text icon)
+        (label :text label)))))
+
+;; ── Sistema ─────────────────────────────────────────────────────────────────
+(defwidget settings-system []
+  (box :orientation "v" :space-evenly false :spacing 10
+    (box :class "card" :space-evenly false :spacing 14
+      (box :class "avatar large" :style "background-image: url('${system.avatar ?: ''}');")
+      (box :orientation "v" :space-evenly false :valign "center"
+        (label :class "big-name" :halign "start" :text {system.user ?: ""})
+        (label :class "dim" :halign "start" :text "${system.host ?: ''} · ${system.os ?: ''}")))
+    (box :class "card" :orientation "v" :space-evenly false
+      (kv :key "Kernel" :value {system.kernel ?: ""})
+      (kv :key "Compositor" :value {system.wm ?: ""})
+      (kv :key "Tiempo encendido" :value {system.uptime ?: ""}))
+    (section-title :text "Recursos")
+    (box :class "card" :orientation "v" :space-evenly false :spacing 8
+      (meter :label "CPU" :value {round(EWW_CPU.avg, 0)} :color "blue")
+      (meter :label "Memoria" :value {round(EWW_RAM.used_mem_perc, 0)} :color "mauve")
+      (meter :label "Disco /" :value {round(EWW_DISK["/"].used_perc, 0)} :color "peach"))))
+
+(defwidget meter [label value color]
+  (box :space-evenly false :spacing 10
+    (label :class "meter-label" :halign "start" :text label)
+    (progress :class "meter c-${color}" :hexpand true :value value :valign "center")
+    (label :class "meter-value" :text "${value}%")))
+
+;; ── Apariencia / selector de temas ─────────────────────────────────────────
+(defwidget settings-appearance []
+  (box :orientation "v" :space-evenly false :spacing 10
+    (section-title :text "Tema")
+    (box :class "theme-cards" :space-evenly true :spacing 8
+      (for t in {appearance.themes ?: []}
+        (eventbox :cursor "pointer"
+          (button :class "theme-card ${t.selected ? 'selected' : ''}" :onclick "desktopctl appearance set theme ${t.id}"
+                  :tooltip "Catppuccin ${t.name}"
+            (box :orientation "v" :space-evenly false :spacing 6
+              (box :class "theme-preview" :style "background-color: ${t.bg};" :space-evenly true
+                (box :class "swatch" :style "background-color: ${t.c1};")
+                (box :class "swatch" :style "background-color: ${t.c2};")
+                (box :class "swatch" :style "background-color: ${t.c3};"))
+              (label :class "theme-name" :text {t.name}))))))
+    (section-title :text "Paleta de colores (acento)")
+    (box :class "accent-row" :space-evenly false :spacing 8
+      (for a in {appearance.accents ?: []}
+        (eventbox :cursor "pointer"
+          (button :class "accent-dot ${a.selected ? 'selected' : ''}" :style "background-color: ${a.hex};"
+                  :onclick "desktopctl appearance set accent ${a.name}" :tooltip {a.name}))))
+    (box :class "card" :orientation "v" :space-evenly false :spacing 10
+      (box :space-evenly false :spacing 10
+        (label :text "Fuente" :hexpand true :halign "start")
+        (combo-box-text :class "font-combo" :items {appearance.fonts ?: []}
+                        :onchange "desktopctl appearance set font_family '{}'"
+                        :tooltip "Actual: ${appearance.font_family ?: ''}"))
+      (label :class "dim small" :halign "end" :text "Actual: ${appearance.font_family ?: ''}")
+      (setting-slider :label "Tamaño de fuente" :key "font_size" :min 8 :max 24 :value {appearance.font_size ?: 13})
+      (setting-slider :label "Radio de bordes" :key "radius" :min 0 :max 24 :value {appearance.radius ?: 10})
+      (setting-slider :label "Espaciado" :key "spacing" :min 2 :max 20 :value {appearance.spacing ?: 8})
+      (setting-toggle :label "Efectos de transparencia" :key "transparency" :value {appearance.transparency ?: false})
+      (box :visible {appearance.transparency == true}
+        (setting-slider :label "Opacidad" :key "opacity" :min 50 :max 100 :value {round((appearance.opacity ?: 0.92) * 100, 0)}))
+      (setting-toggle :label "Sombras" :key "shadows" :value {appearance.shadows ?: true})
+      (setting-toggle :label "Animaciones" :key "animations" :value {appearance.animations ?: true}))
+    (box :halign "end"
+      (text-button :label "Restaurar valores predeterminados" :icon "󰑓" :onclick "desktopctl appearance reset"))))
+
+;; Los cambios de deslizador se aplican al soltar (eww envía el valor final con :timeout)
+(defwidget setting-slider [label key min max value]
+  (box :space-evenly false :spacing 10
+    (label :class "setting-label" :halign "start" :xalign 0 :text label)
+    (scale :class "slider" :hexpand true :min min :max {max + 1} :value value :round-digits 0
+           :timeout "2s" :onchange "desktopctl appearance set ${key} {}")
+    (label :class "slider-value" :text value)))
+
+(defwidget setting-toggle [label key value]
+  (box :space-evenly false
+    (label :class "setting-label" :hexpand true :halign "start" :xalign 0 :text label)
+    (toggle :active value :onclick "desktopctl appearance set ${key} toggle")))
+
+;; ── Pantallas ───────────────────────────────────────────────────────────────
+(defwidget settings-displays []
+  (box :orientation "v" :space-evenly false :spacing 10
+    (for m in {wm.monitors ?: []}
+      (box :class "card ${m.focused ? 'selected' : ''}" :space-evenly false :spacing 14
+        (label :class "glyph huge c-${m.index == 0 ? 'accent' : 'overlay2'}" :text "󰍹")
+        (box :orientation "v" :space-evenly false :hexpand true
+          (label :class "big-name" :halign "start" :text "${m.name}${m.index == 0 ? ' · principal' : ''}")
+          (label :class "dim" :halign "start" :text {m.model != "" ? m.model : "—"})
+          (label :class "dim" :halign "start"
+                 :text {m.width > 0 ? "${m.width}×${m.height} @ ${m.refresh} Hz · escala ${m.scale} · posición ${m.x},${m.y}" : "Datos no disponibles con este compositor"}))
+        (label :class "dim" :visible {m.focused} :text "enfocado")))
+    (label :class "status-line" :wrap true :xalign 0
+           :text "Resolución, posición y monitor principal se definen en settings.json → monitors. Después ejecuta «Aplicar» o desktopctl apply.")
+    (box :halign "end" :space-evenly false :spacing 8
+      (text-button :label "Editar settings.json" :icon "󰷈" :onclick "desktopctl system edit-settings")
+      (text-button :label "Aplicar" :icon "󰄬" :kind "primary" :onclick "desktopctl appearance apply ; desktopctl wm bars"))))
+
+;; ── Energía ─────────────────────────────────────────────────────────────────
+(defwidget settings-power []
+  (box :orientation "v" :space-evenly false :spacing 10
+    (box :visible {arraylength(system.power_profiles ?: []) > 0} :orientation "v" :space-evenly false
+      (section-title :text "Perfil de energía")
+      (segmented :items {jq(system.power_profiles ?: [], '[.[] | {id: ., label: ({"performance":"Rendimiento","balanced":"Equilibrado","power-saver":"Ahorro"}[.] // .)}]')}
+                 :selected {system.power_profile ?: ""} :onselect "desktopctl system profile %s"))
+    (box :visible {system.battery?.present == true} :class "card" :orientation "v" :space-evenly false
+      (kv :key "Batería" :value "${system.battery?.percent ?: ''}% · ${system.battery?.status ?: ''}"))
+    (section-title :text "Inactividad (settings.json → idle)")
+    (box :class "card" :orientation "v" :space-evenly false
+      (kv :key "Bloquear tras" :value {(system.idle?.lock_minutes ?: 0) > 0 ? "${system.idle?.lock_minutes} min" : "nunca"})
+      (kv :key "Apagar pantalla tras" :value {(system.idle?.screen_off_minutes ?: 0) > 0 ? "${system.idle?.screen_off_minutes} min" : "nunca"})
+      (kv :key "Suspender tras" :value {(system.idle?.suspend_minutes ?: 0) > 0 ? "${system.idle?.suspend_minutes} min" : "nunca"}))
+    (box :space-evenly true :spacing 8
+      (text-button :label "Bloquear" :icon "󰌾" :onclick "desktopctl system power lock")
+      (text-button :label "Suspender" :icon "󰤄" :onclick "desktopctl system power suspend")
+      (text-button :label "Más…" :icon "⏻" :onclick "desktopctl popup open power ${popup.monitor}"))))
+
+;; ── Aplicaciones / accesos rápidos ─────────────────────────────────────────
+(defwidget settings-apps []
+  (box :orientation "v" :space-evenly false :spacing 10
+    (section-title :text "Accesos rápidos de la barra")
+    (box :class "card list" :orientation "v" :space-evenly false
+      (for q in {system.quick_launch ?: []}
+        (box :class "pkg-row" :space-evenly false :spacing 12
+          (box (image :visible {q.image != ""} :path {q.image} :image-width 22 :image-height 22)
+               (label :visible {q.image == ""} :class "glyph" :text {q.glyph}))
+          (label :class "pkg-name" :halign "start" :hexpand true :text {q.name})
+          (label :class "dim" :limit-width 30 :text {q.exec}))))
+    (label :class "status-line" :wrap true :xalign 0
+           :text "Los accesos y las aplicaciones predeterminadas se editan en settings.json (quick_launch y apps).")
+    (box :halign "end" :space-evenly false :spacing 8
+      (text-button :label "Volver a leer aplicaciones" :icon "󰑐" :onclick "desktopctl apps rescan")
+      (text-button :label "Editar settings.json" :icon "󰷈" :kind "primary" :onclick "desktopctl system edit-settings"))))
+
+;; ── Atajos ──────────────────────────────────────────────────────────────────
+(defwidget settings-keys []
+  (box :orientation "v" :space-evenly false :spacing 6
+    (label :class "status-line" :visible {arraylength(system.keybinds ?: []) == 0} :wrap true :xalign 0
+           :text "La lista se genera al cargar la configuración de Hyprland (config/hypr/modules/keybinds.lua).")
+    (for k in {system.keybinds ?: []}
+      (box :class "key-row" :space-evenly false :spacing 12
+        (label :class "key-combo" :text {k.keys})
+        (label :halign "start" :hexpand true :wrap true :xalign 0 :text {k.desc})))))
+
+;; ── Información ─────────────────────────────────────────────────────────────
+(defwidget settings-info []
+  (box :orientation "v" :space-evenly false :spacing 10
+    (section-title :text "Estado de servicios"
+      (icon-button :icon "󰑐" :class "flat" :onclick "desktopctl system refresh" :tooltip "Actualizar"))
+    (box :class "card list" :orientation "v" :space-evenly false
+      (for s in {system.services ?: []}
+        (box :class "pkg-row" :space-evenly false
+          (label :halign "start" :hexpand true :text {s.name})
+          (badge :text {s.state} :kind {s.active ? "ok" : "off"}))))
+    (box :class "card" :orientation "v" :space-evenly false
+      (kv :key "Sistema" :value {system.os ?: ""})
+      (kv :key "Proyecto" :value "hyprland-desktop")
+      (kv :key "Diagnóstico" :value "desktopctl doctor"))))

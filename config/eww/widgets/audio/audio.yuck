@@ -1,0 +1,44 @@
+;; Volumen: salida/entrada, deslizador, silencio y selección de dispositivo (PipeWire)
+
+(defwindow audio
+  :geometry (geometry :x "250px" :y "0px" :width "380px" :anchor "top right")
+  :stacking "overlay"
+  :focusable false
+  :namespace "hd-popup"
+  (popup-frame :name "audio-popup"
+    (panel-header :icon {audio.sink?.glyph ?: "󰕾"} :title "Audio" :color "blue"
+      (close-button))
+    (audio-content)))
+
+;; Contenido reutilizable (también aparece en Configuración → Sonido)
+(defwidget audio-content []
+  (box :orientation "v" :space-evenly false :spacing 10
+    (box :visible {audio.available != true} :class "status-line error"
+      (label :wrap true :text {audio.error ?: "Audio no disponible"}))
+    (segmented :items `[{"id":"out","label":"Salida"},{"id":"in","label":"Entrada"}]`
+               :selected {popup.tab == "in" ? "in" : "out"}
+               :onselect "desktopctl popup tab %s")
+    ;; Salida
+    (box :visible {popup.tab != "in"} :orientation "v" :space-evenly false :spacing 10
+      (slider-row :icon {audio.sink?.glyph ?: "󰕾"} :value {audio.sink?.volume ?: 0} :max 151
+                  :onchange "desktopctl audio set sink {}" :muted {audio.sink?.muted ?: false}
+                  :icon_click "desktopctl audio mute sink" :mute_click "desktopctl audio mute sink")
+      (section-title :text "Dispositivo de salida")
+      (box :class "card list" :orientation "v" :space-evenly false
+        (for dev in {audio.sinks ?: []}
+          (list-row :icon {dev.icon} :title {dev.description} :subtitle {dev.port}
+                    :selected {dev.default} :color {dev.default ? "accent" : "text"}
+                    :onclick "desktopctl audio default sink '${dev.name}'"
+            (label :class "glyph c-accent" :visible {dev.default} :text "󰄬")))))
+    ;; Entrada
+    (box :visible {popup.tab == "in"} :orientation "v" :space-evenly false :spacing 10
+      (slider-row :icon {audio.source?.glyph ?: "󰍬"} :value {audio.source?.volume ?: 0} :max 151
+                  :onchange "desktopctl audio set source {}" :muted {audio.source?.muted ?: false}
+                  :icon_click "desktopctl audio mute source" :mute_click "desktopctl audio mute source")
+      (section-title :text "Dispositivo de entrada")
+      (box :class "card list" :orientation "v" :space-evenly false
+        (for dev in {audio.sources ?: []}
+          (list-row :icon {dev.icon} :title {dev.description} :subtitle {dev.port}
+                    :selected {dev.default} :color {dev.default ? "accent" : "text"}
+                    :onclick "desktopctl audio default source '${dev.name}'"
+            (label :class "glyph c-accent" :visible {dev.default} :text "󰄬")))))))

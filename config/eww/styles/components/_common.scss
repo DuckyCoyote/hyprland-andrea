@@ -1,0 +1,221 @@
+// Estilos de components/common.yuck
+
+.icon-btn {
+  min-width: $font-size * 2.2;
+  min-height: $font-size * 2.2;
+  border-radius: $radius-pill;
+  @include transition(background-color, color);
+  .glyph { font-size: $font-size + 3px; }
+  &:hover { background-color: $hover; }
+  &.flat { background-color: transparent; &:hover { background-color: $hover; } }
+  &.active { background-color: $accent; .glyph { color: $on-accent; } }
+  &.mute {
+    background-color: $hover;
+    border-radius: $radius-sm;
+    &.on { background-color: rgba($red, 0.18); .glyph { color: $red; } }
+  }
+}
+
+.text-btn {
+  padding: $gap-sm + 2px $gap * 2;
+  border-radius: $radius;
+  background-color: $hover;
+  border: $border-width solid $border;
+  @include transition(background-color);
+  &:hover { background-color: $hover-strong; }
+  &.primary { background-color: $accent; border-color: $accent; label { color: $on-accent; font-weight: bold; } }
+  &.primary:hover { background-color: mix($accent, $text, 85%); }
+  &.danger { background-color: $red; border-color: $red; label { color: $on-accent; font-weight: bold; } }
+  &.danger:hover { background-color: mix($red, $text, 85%); }
+}
+
+.toggle {
+  .toggle-track {
+    min-width: 40px;
+    min-height: 22px;
+    border-radius: $radius-pill;
+    background-color: $surface1;
+    padding: 2px;
+    @include transition(background-color);
+  }
+  .toggle-knob {
+    min-width: 18px;
+    min-height: 18px;
+    border-radius: $radius-pill;
+    background-color: $overlay2;
+  }
+  &.on {
+    .toggle-track { background-color: $green; }
+    .toggle-knob { background-color: $base; }
+  }
+}
+
+.panel-header {
+  margin-bottom: $gap;
+  .panel-header-icon { font-size: $font-xl; }
+  .panel-title { font-size: $font-lg + 2px; font-weight: bold; }
+}
+
+.section-title {
+  margin: $gap 0 $gap-sm 2px;
+  label { color: $fg; font-weight: bold; }
+  .icon-btn .glyph { font-size: $font-size + 1px; color: $fg-dim; }
+}
+
+.segmented {
+  background-color: $bg-sunken;
+  border: $border-width solid $border;
+  border-radius: $radius;
+  padding: 3px;
+  .segment {
+    padding: 6px 12px;
+    border-radius: $radius-sm;
+    @include transition(background-color);
+    label { color: $fg-dim; }
+    &:hover { background-color: $hover; }
+    &.selected { background-color: $accent; label { color: $on-accent; font-weight: bold; } }
+  }
+}
+
+.slider-row {
+  background-color: $bg-alt;
+  border: $border-width solid $border;
+  border-radius: $radius;
+  padding: 8px 12px;
+  .slider-icon .glyph { font-size: $font-lg + 2px; color: $fg; }
+  .slider-value { min-width: 44px; font-weight: bold; }
+  &.muted .slider-icon .glyph { color: $red; }
+}
+
+scale.slider, .slider {
+  trough {
+    min-height: 8px;
+    border-radius: $radius-pill;
+    background-color: $surface1;
+    highlight {
+      border-radius: $radius-pill;
+      background-color: $accent;
+    }
+    slider {
+      min-width: 16px;
+      min-height: 16px;
+      margin: -5px;
+      border-radius: $radius-pill;
+      background-color: $text;
+      @include elevation;
+    }
+  }
+}
+
+.list-row {
+  padding: 8px 12px;
+  border-radius: $radius;
+  border: $border-width solid transparent;
+  @include transition(background-color, border-color);
+  &:hover { background-color: $hover; }
+  &.selected { border-color: $accent; background-color: rgba($accent, 0.08); }
+  .list-row-icon { font-size: $font-xl - 2px; min-width: 28px; }
+  .list-row-title { font-weight: bold; }
+  .list-row-subtitle { font-size: $font-sm; color: $fg-dim; }
+}
+
+.badge {
+  padding: 2px 10px;
+  border-radius: $radius-pill;
+  font-size: $font-sm;
+  background-color: $surface0;
+  color: $fg-dim;
+  &.official { background-color: rgba($blue, 0.18); color: $blue; }
+  &.aur { background-color: rgba($mauve, 0.18); color: $mauve; }
+  &.other { background-color: rgba($teal, 0.18); color: $teal; }
+  &.ok { background-color: rgba($green, 0.18); color: $green; }
+  &.off { background-color: rgba($red, 0.18); color: $red; }
+}
+
+.kv {
+  padding: 5px 2px;
+  .kv-key { color: $fg-dim; }
+  .kv-value { font-weight: bold; }
+}
+
+.card {
+  background-color: $bg-alt;
+  border: $border-width solid $border;
+  border-radius: $radius;
+  padding: $gap;
+}
+
+.status-line {
+  margin-top: $gap-sm;
+  font-size: $font-sm;
+  color: $fg-dim;
+  &.error { color: $red; }
+}
+
+input, .input {
+  background-color: $bg-sunken;
+  border: $border-width solid $border;
+  border-radius: $radius;
+  padding: 8px 12px;
+  caret-color: $accent;
+  &:focus { border-color: $accent; }
+}
+
+scrollbar, scrollbar * { all: unset; }
+scrollbar slider { min-width: 4px; border-radius: $radius-pill; background-color: $surface1; }
+
+// Marco común de los popups
+.popup {
+  background-color: $bg;
+  border: $border-width solid $border-strong;
+  border-radius: $radius-lg;
+  padding: $gap * 2;
+  margin: 6px 10px 14px 10px;
+  @include elevation;
+}
+
+.avatar {
+  background-size: cover;
+  background-position: center;
+  border-radius: $radius-pill;
+  min-width: 48px;
+  min-height: 48px;
+  &.small { min-width: 22px; min-height: 22px; }
+  &.large { min-width: 64px; min-height: 64px; }
+}
+
+.pill {
+  padding: 0 5px;
+  min-width: 8px;
+  min-height: 15px;
+  border-radius: $radius-pill;
+  background-color: $surface1;
+  font-size: $font-size - 4px;
+  font-weight: bold;
+  &.accent { background-color: $lavender; color: $on-accent; }
+}
+
+combobox, combobox * { all: unset; }
+combobox button {
+  background-color: $bg-sunken;
+  border: $border-width solid $border;
+  border-radius: $radius;
+  padding: 6px 12px;
+}
+combobox arrow { min-width: 12px; }
+menu, .menu {
+  background-color: $base;
+  border: $border-width solid $border;
+  border-radius: $radius-sm;
+  padding: 4px;
+  menuitem { padding: 6px 10px; border-radius: $radius-sm; &:hover { background-color: $hover; } }
+}
+
+calendar {
+  padding: 4px;
+  &.header { font-weight: bold; }
+  &:selected { background-color: $accent; color: $on-accent; border-radius: $radius-sm; }
+  &.button { color: $fg-dim; }
+  &.highlight { color: $accent; font-weight: bold; }
+  &:indeterminate { color: $overlay0; }
+}

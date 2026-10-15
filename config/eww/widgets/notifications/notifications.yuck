@@ -1,0 +1,63 @@
+;; Notificaciones: avisos emergentes (arriba a la derecha, bajo la barra) y bandeja.
+;; El servidor D-Bus es desktopd (lib/desktop/sources/notifications.py).
+
+;; ── Avisos emergentes ───────────────────────────────────────────────────────
+(defwindow notify_toasts
+  :geometry (geometry :x "0px" :y "0px" :width "400px" :anchor "top right")
+  :stacking "overlay"
+  :focusable false
+  :namespace "hd-notify"
+  (box :class "toasts" :orientation "v" :space-evenly false :spacing 8
+    (for n in {notifications.toasts ?: []}
+      (notification-card :n n :toast true))))
+
+;; ── Bandeja / centro de notificaciones ─────────────────────────────────────
+(defwindow notifications
+  :geometry (geometry :x "330px" :y "0px" :width "420px" :anchor "top right")
+  :stacking "overlay"
+  :focusable false
+  :namespace "hd-popup"
+  (popup-frame :name "notifications-popup"
+    (panel-header :icon {notifications.dnd == true ? "󰂛" : "󰂚"} :title "Notificaciones" :color "peach"
+      (box :space-evenly false :spacing 6 :tooltip "No molestar"
+        (label :class "dim small" :text "No molestar")
+        (toggle :active {notifications.dnd ?: false} :onclick "desktopctl notifications dnd toggle"))
+      (close-button))
+    (box :visible {notifications.server == false} :class "status-line error"
+      (label :wrap true :xalign 0
+             :text "Otro programa (mako, dunst o Plasma) controla las notificaciones; ciérralo para usar esta bandeja."))
+    (box :visible {(notifications.count ?: 0) == 0} :class "notify-empty" :orientation "v" :space-evenly false :spacing 8
+      (label :class "glyph huge c-overlay0" :text "󰂜")
+      (label :class "dim" :text "No hay notificaciones"))
+    (scroll :vscroll true :hscroll false :visible {(notifications.count ?: 0) > 0}
+            :height {(notifications.count ?: 0) > 4 ? 440 : (notifications.count ?: 0) * 110}
+      (box :orientation "v" :space-evenly false :spacing 8
+        (for n in {notifications.history ?: []}
+          (notification-card :n n :toast false))))
+    (box :visible {(notifications.count ?: 0) > 0} :halign "end" :class "actions"
+      (text-button :label "Borrar todo" :icon "󰎟" :onclick "desktopctl notifications clear"))))
+
+;; Tarjeta común (aviso o elemento de la bandeja)
+(defwidget notification-card [n toast]
+  (box :class "notification ${n.urgency == 2 ? 'critical' : ''} ${toast ? 'toast' : ''}" :orientation "v" :space-evenly false :spacing 8
+    (box :space-evenly false :spacing 4
+      (eventbox :cursor "pointer" :hexpand true
+        (button :onclick {n.has_default ? "desktopctl notifications action ${n.id} default" :
+                          toast ? "desktopctl notifications hide ${n.id}" : ""}
+          (box :space-evenly false :spacing 12
+            (box :valign "start" :class "notify-icon-box"
+              (image :visible {n.image != ""} :path {n.image} :image-width 40 :image-height 40)
+              (label :visible {n.image == ""} :class "notify-glyph ${n.urgency == 2 ? 'c-red' : 'c-accent'}" :text {n.glyph}))
+            (box :orientation "v" :space-evenly false :hexpand true :spacing 2
+              (box :space-evenly false :spacing 8
+                (label :class "notify-app" :halign "start" :hexpand true :limit-width 28 :text {n.app})
+                (label :class "notify-time" :text {n.time}))
+              (label :class "notify-summary" :halign "start" :xalign 0 :wrap true :truncate false :text {n.summary})
+              (label :class "notify-body" :visible {n.body != ""} :halign "start" :xalign 0 :wrap true :truncate false :text {n.body})))))
+      (box :valign "start"
+        (icon-button :icon {toast ? "󰅖" : "󰆴"} :class "flat small"
+                     :tooltip {toast ? "Ocultar (queda en la bandeja)" : "Descartar"}
+                     :onclick {toast ? "desktopctl notifications hide ${n.id}" : "desktopctl notifications dismiss ${n.id}"})))
+    (box :visible {arraylength(n.actions) > 0} :space-evenly true :spacing 6
+      (for a in {n.actions}
+        (text-button :label {a.label} :onclick "desktopctl notifications action ${n.id} '${a.key}'")))))

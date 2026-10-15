@@ -1,0 +1,74 @@
+// Barra: grupos independientes en cápsulas redondeadas (06_bar.png / mockup.png)
+
+.bar {
+  margin: $gap 14px 0 14px;
+}
+
+.bar-group {
+  background-color: $bg;
+  border: $border-width solid $border-strong;
+  border-radius: $radius + 2px;
+  padding: 6px 14px;
+  min-height: 34px;
+  @include elevation;
+  button { @include transition(opacity); }
+  button:hover { opacity: 0.8; }
+}
+
+// Grupo A
+.launcher-group { padding: 6px 9px; }
+.quick-item .glyph { font-size: $glyph-size + 2px; }
+
+// Grupo B
+.clock-time { font-size: $font-size - 1px; font-weight: bold; }
+.clock-date { font-size: $font-size - 2px; color: $fg-dim; }
+.weather-glyph { font-size: $font-xl; }
+.weather-temp { font-size: $font-lg; font-weight: bold; }
+
+// Grupo C
+.workspaces {
+  padding: 6px 14px;
+  .ws {
+    padding: 2px;
+    border-radius: $radius-pill;
+    @include transition(background-color, opacity);
+    &.empty { opacity: 0.85; }
+    &.urgent { background-color: rgba($red, 0.45); }
+    &:hover { background-color: $hover; }
+  }
+}
+
+// Grupo D
+.media-group { padding: 5px 10px 5px 6px; }
+.media-cover {
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: $radius-sm;
+  background-size: cover;
+  background-position: center;
+  &.empty { background-color: $surface0; }
+}
+.media-text { min-width: 120px; }
+.media-title { font-size: $font-size - 1px; font-weight: bold; }
+.media-artist { font-size: $font-size - 2px; color: $fg-dim; }
+.media-controls .icon-btn {
+  min-width: 26px;
+  min-height: 26px;
+  .glyph { font-size: $font-size + 4px; }
+  &.play .glyph { font-size: $font-size + 8px; }
+}
+
+// Grupo E
+.system-group {
+  .sys-glyph { font-size: $glyph-size + 1px; }
+  .sys-glyph.busy { color: $overlay1; }
+  .sys-value { font-weight: bold; font-size: $font-size - 1px; }
+}
+.power-button {
+  min-width: 24px;
+  min-height: 24px;
+  border-radius: $radius-pill;
+  background-color: rgba($red, 0.2);
+  label { color: $red; font-size: $font-size + 1px; }
+  &:hover { background-color: $red; label { color: $on-accent; } }
+}

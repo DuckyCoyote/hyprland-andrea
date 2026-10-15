@@ -1,0 +1,42 @@
+;; Clima (Open-Meteo): actual, por horas y próximos días
+
+(defwindow weather
+  :geometry (geometry :x "330px" :y "0px" :width "400px" :anchor "top left")
+  :stacking "overlay"
+  :focusable false
+  :namespace "hd-popup"
+  (popup-frame :name "weather-popup"
+    (panel-header :icon {weather.glyph ?: "󰖐"} :title {weather.city ?: "Clima"} :color {weather.color ?: "lavender"}
+      (icon-button :icon "󰑐" :class "flat ${weather.loading == true ? 'spinning' : ''}"
+                   :onclick "desktopctl weather refresh" :tooltip "Actualizar (${weather.updated ?: '--'})")
+      (close-button))
+    (box :visible {weather.available != true} :class "status-line error"
+      (label :wrap true :text {weather.loading == true ? "Cargando…" : (weather.error ?: "Sin datos")}))
+    (box :visible {weather.available == true} :orientation "v" :space-evenly false :spacing 12
+      (box :space-evenly false :spacing 12
+        (box :orientation "v" :space-evenly false :hexpand true
+          (label :class "weather-big-temp" :halign "start" :text "${weather.temp ?: '--'}${weather.unit ?: '°C'}")
+          (label :class "weather-desc" :halign "start" :wrap true :xalign 0 :text {weather.desc ?: ""}))
+        (label :class "weather-big-glyph c-${weather.color ?: 'lavender'}" :text {weather.glyph ?: ""})
+        (box :orientation "v" :space-evenly false :class "weather-details" :valign "center"
+          (kv :key "Sensación térmica" :value "${weather.feels ?: '--'}°")
+          (kv :key "Humedad" :value "${weather.humidity ?: '--'}%")
+          (kv :key "Viento" :value "${weather.wind ?: '--'} ${weather.wind_unit ?: ''}")
+          (kv :key "Prob. de lluvia" :value "${weather.pop ?: 0}%")))
+      (box :class "card" :orientation "v" :space-evenly false :spacing 10
+        (segmented :items `[{"id":"hours","label":"Por horas"},{"id":"days","label":"Próximos días"}]`
+                   :selected weather_tab :onselect "${EWW_CMD} update weather_tab=%s")
+        (box :visible {weather_tab == "hours"} :class "forecast" :space-evenly true
+          (for h in {weather.hours ?: []}
+            (box :orientation "v" :space-evenly false :spacing 6 :tooltip "${h.desc} · lluvia ${h.pop}%"
+              (label :class "forecast-label" :text {h.time})
+              (label :class "forecast-glyph c-${h.color}" :text {h.glyph})
+              (label :class "forecast-temp" :text "${h.temp}°"))))
+        (box :visible {weather_tab == "days"} :class "forecast" :space-evenly true
+          (for d in {weather.days ?: []}
+            (box :orientation "v" :space-evenly false :spacing 6 :tooltip "${d.desc} · lluvia ${d.pop}%"
+              (label :class "forecast-label" :text {d.day})
+              (label :class "forecast-glyph c-${d.color}" :text {d.glyph})
+              (label :class "forecast-temp" :text "${d.max}°")
+              (label :class "forecast-min" :text "${d.min}°")))))
+      (label :class "status-line error" :visible {weather.error != ""} :halign "start" :text {weather.error ?: ""}))))

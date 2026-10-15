@@ -1,0 +1,67 @@
+;; Wi-Fi y red: estado, red activa, lista de redes, conexión con contraseña
+
+(defwindow network
+  :geometry (geometry :x "120px" :y "0px" :width "380px" :anchor "top right")
+  :stacking "overlay"
+  :focusable true
+  :namespace "hd-popup"
+  (popup-frame :name "network-popup"
+    (panel-header :icon {network.wifi_enabled == true ? "󰖩" : "󰖪"} :title "Redes" :color "blue"
+      (box :visible {network.wifi_hw == true}
+        (toggle :active {network.wifi_enabled ?: false} :onclick "desktopctl network toggle-wifi" :tooltip "Activar/desactivar Wi-Fi"))
+      (close-button))
+    (network-content)))
+
+(defwidget network-content []
+  (box :orientation "v" :space-evenly false :spacing 10
+    (box :visible {network.available != true} :class "status-line error"
+      (label :wrap true :text {network.error ?: "NetworkManager no disponible"}))
+    ;; Conexiones activas
+    (box :visible {(network.ethernet?.connection ?: "") != ""} :class "card active-net" :space-evenly false :spacing 12
+      (label :class "net-glyph c-green" :text "󰈀")
+      (box :orientation "v" :space-evenly false :hexpand true :valign "center"
+        (label :class "net-name" :halign "start" :limit-width 26 :text {network.ethernet?.connection ?: ""})
+        (label :class "net-state" :halign "start" :text "Ethernet · Conectada"))
+      (icon-button :icon "󰒓" :class "flat" :onclick "desktopctl network editor" :tooltip "Editar conexiones"))
+    (box :visible {(network.wifi?.connection ?: "") != ""} :class "card active-net" :space-evenly false :spacing 12
+      (label :class "net-glyph c-green" :text {network.glyph == "󰈀" ? "󰤨" : "󰤨"})
+      (box :orientation "v" :space-evenly false :hexpand true :valign "center"
+        (label :class "net-name" :halign "start" :limit-width 26 :text {network.ssid ?: ""})
+        (label :class "net-state" :halign "start" :text "Wi-Fi · Conectada · ${network.wifi?.signal ?: 0}%"))
+      (icon-button :icon "󰅛" :class "flat" :onclick "desktopctl network disconnect" :tooltip "Desconectar")
+      (icon-button :icon "󰒓" :class "flat" :onclick "desktopctl network editor" :tooltip "Editar conexiones"))
+    (box :visible {network.kind == "disconnected"} :class "card" :space-evenly false :spacing 12
+      (label :class "net-glyph c-red" :text {network.glyph ?: "󰤭"})
+      (label :class "net-state" :text {network.wifi_enabled == true ? "Sin conexión" : "Wi-Fi desactivado"}))
+
+    ;; Redes disponibles
+    (box :visible {network.wifi_enabled == true} :orientation "v" :space-evenly false
+      (section-title :text "Redes disponibles"
+        (icon-button :icon {network.scanning == true ? "󰑓" : "󰑐"} :class "flat ${network.scanning == true ? 'spinning' : ''}"
+                     :onclick "desktopctl network scan" :tooltip "Buscar redes"))
+      (scroll :vscroll true :hscroll false :height 230
+        (box :class "card list" :orientation "v" :space-evenly false
+          (for net in {network.networks ?: []}
+            (box :orientation "v" :space-evenly false
+              (list-row :icon {net.glyph} :title {net.ssid}
+                        :subtitle {net.active ? "Conectada" : network.busy == net.ssid ? "Conectando…" : net.known ? "Guardada" : ""}
+                        :selected {net.active} :color {net.active ? "accent" : "text"}
+                        :onclick {net.active ? "" : "desktopctl network connect '${net.ssid}'"}
+                (label :class "glyph small c-overlay2" :visible {net.secure} :text "󰌾")
+                (label :class "net-signal" :text "${net.signal}%"))
+              ;; Contraseña (solo para la red que la está pidiendo)
+              (box :visible {network.pending == net.ssid} :class "password-row" :space-evenly false :spacing 8
+                ;; La contraseña solo viaja al pulsar Enter (no se guarda en variables de Eww)
+                (input :class "input" :hexpand true :password true
+                       :onaccept "desktopctl network password '${net.ssid}' '{}'")
+                (icon-button :icon "󰅖" :class "flat" :tooltip "Cancelar"
+                             :onclick "desktopctl network cancel")))))))
+    (eventbox :cursor "pointer"
+      (button :class "list-row more" :onclick "desktopctl network editor"
+        (box :space-evenly false :spacing 12
+          (label :class "glyph" :text "󰒓")
+          (label :hexpand true :halign "start" :text "Otras opciones")
+          (label :class "glyph" :text "󰅂"))))
+    (label :class "status-line ${network.error != '' ? 'error' : ''}" :xalign 0 :wrap true
+           :visible {network.status != "" || network.error != ""}
+           :text {network.error != "" ? network.error : network.status})))

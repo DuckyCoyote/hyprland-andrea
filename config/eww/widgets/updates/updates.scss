@@ -1,0 +1,9 @@
+// Actualizaciones
+.updates-count { font-size: $font-lg; font-weight: bold; margin-bottom: $gap-sm; }
+.pkg-row {
+  padding: 8px 10px;
+  border-bottom: $border-width solid rgba($border, 0.5);
+  .pkg-name { font-weight: bold; }
+  .pkg-version { color: $fg-dim; font-size: $font-sm; }
+}
+.updates-popup .actions { margin-top: $gap; }

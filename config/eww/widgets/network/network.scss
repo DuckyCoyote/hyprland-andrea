@@ -1,0 +1,13 @@
+// Wi-Fi / red
+.network-popup {
+  .active-net { border-color: $accent; background-color: rgba($accent, 0.08); }
+}
+.net-glyph { font-size: $font-xl; }
+.net-name { font-weight: bold; }
+.net-state { font-size: $font-sm; color: $fg-dim; }
+.net-signal { font-size: $font-sm; color: $fg-dim; min-width: 34px; }
+.glyph.small { font-size: $font-size; }
+.password-row { padding: 6px 8px 8px 48px; }
+.list-row.more { background-color: $bg-alt; border-color: $border; }
+.card.list { padding: 4px; }
+.spinning .glyph { color: $accent; }

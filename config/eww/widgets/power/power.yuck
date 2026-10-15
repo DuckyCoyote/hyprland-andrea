@@ -1,0 +1,32 @@
+;; Menú de energía (05_power.png / mockup). Las acciones que pueden hacer perder trabajo
+;; (cerrar sesión, reiniciar, apagar) piden confirmación en la propia fila.
+
+(defwindow power
+  :geometry (geometry :x "10px" :y "0px" :width "320px" :anchor "top right")
+  :stacking "overlay"
+  :focusable false
+  :namespace "hd-popup"
+  (popup-frame :name "power-popup"
+    (panel-header :icon "⏻" :title "Energía" :color "red"
+      (close-button))
+    (box :orientation "v" :space-evenly false :spacing 8
+      (power-row :action "lock"      :icon "󰌾" :label "Bloquear pantalla" :confirm false)
+      (power-row :action "suspend"   :icon "󰤄" :label "Suspender"         :confirm false)
+      (box :visible {system.can_hibernate == true}
+        (power-row :action "hibernate" :icon "󰜗" :label "Hibernar"        :confirm false))
+      (power-row :action "logout"    :icon "󰍃" :label "Cerrar sesión"     :confirm true)
+      (power-row :action "reboot"    :icon "󰜉" :label "Reiniciar"         :confirm true)
+      (power-row :action "poweroff"  :icon "⏻" :label "Apagar"            :confirm true :danger true))))
+
+(defwidget power-row [action icon label confirm ?danger]
+  (box :orientation "v" :space-evenly false
+    (eventbox :cursor "pointer" :visible {popup.confirm != action}
+      (button :class "power-row ${danger == true ? 'danger' : ''}"
+              :onclick {confirm ? "desktopctl popup confirm ${action}" : "desktopctl system power ${action}"}
+        (box :space-evenly false :spacing 14
+          (label :class "glyph" :text icon)
+          (label :halign "start" :text label))))
+    (box :visible {popup.confirm == action} :class "power-confirm" :space-evenly false :spacing 8
+      (label :hexpand true :halign "start" :text "¿${label}?")
+      (text-button :label "Cancelar" :onclick "desktopctl popup confirm")
+      (text-button :label "Sí" :kind "danger" :onclick "desktopctl system power ${action}"))))

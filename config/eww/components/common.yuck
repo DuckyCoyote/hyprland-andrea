@@ -1,0 +1,91 @@
+;; ─────────────────────────────────────────────────────────────────────────────
+;; Componentes reutilizables. Todos los widgets se construyen con estas piezas para
+;; compartir el mismo sistema visual (estilos en styles/components/_common.scss).
+;; ─────────────────────────────────────────────────────────────────────────────
+
+;; Icono de Nerd Font con color semántico opcional (clase "c-<color>")
+(defwidget glyph [text ?color ?class ?tooltip]
+  (label :class "glyph ${color != '' ? 'c-' + color : ''} ${class}" :text text :tooltip tooltip))
+
+;; Botón de icono redondo
+(defwidget icon-button [icon onclick ?class ?tooltip ?active]
+  (eventbox :cursor "pointer"
+    (button :class "icon-btn ${class} ${active == true ? 'active' : ''}" :onclick onclick :tooltip tooltip
+      (label :class "glyph" :text icon))))
+
+;; Botón de texto (primary = color de acento, danger = rojo)
+(defwidget text-button [label onclick ?icon ?kind ?hexpand]
+  (eventbox :cursor "pointer" :hexpand {hexpand ?: false}
+    (button :class "text-btn ${kind}" :onclick onclick :hexpand {hexpand ?: false}
+      (box :space-evenly false :halign "center" :spacing 8
+        (label :class "glyph" :visible {icon != ""} :text icon)
+        (label :text label)))))
+
+;; Interruptor on/off
+(defwidget toggle [active onclick ?tooltip]
+  (eventbox :cursor "pointer" :tooltip tooltip
+    (button :class "toggle ${active ? 'on' : 'off'}" :onclick onclick :valign "center"
+      (box :class "toggle-track" :space-evenly false
+        (box :class "toggle-knob" :hexpand true :halign {active ? "end" : "start"})))))
+
+;; Cabecera de panel: icono, título y acciones (children) a la derecha
+(defwidget panel-header [icon title ?color]
+  (box :class "panel-header" :space-evenly false :spacing 12
+    (label :class "panel-header-icon c-${color ?: 'accent'}" :text icon)
+    (label :class "panel-title" :text title :hexpand true :halign "start")
+    (children)))
+
+(defwidget close-button []
+  (icon-button :icon "󰅖" :onclick "desktopctl popup close" :tooltip "Cerrar (Esc)" :class "flat"))
+
+;; Título de sección dentro de un panel, con acciones opcionales a la derecha
+(defwidget section-title [text]
+  (box :class "section-title" :space-evenly false
+    (label :text text :hexpand true :halign "start")
+    (children)))
+
+;; Control segmentado (pestañas). items: [{"id":..,"label":..}]
+(defwidget segmented [items selected onselect]
+  (box :class "segmented" :space-evenly true
+    (for item in items
+      (eventbox :cursor "pointer"
+        (button :class "segment ${item.id == selected ? 'selected' : ''}"
+                :onclick "${replace(onselect, '%s', item.id)}"
+          (label :text {item.label}))))))
+
+;; Fila con icono + deslizador + valor (+ botón de silencio opcional)
+(defwidget slider-row [icon value onchange ?max ?icon_click ?muted ?suffix ?mute_click]
+  (box :class "slider-row ${muted == true ? 'muted' : ''}" :space-evenly false :spacing 12
+    (eventbox :cursor "pointer"
+      (button :class "slider-icon" :onclick {icon_click ?: ""} (label :class "glyph" :text icon)))
+    (scale :class "slider" :hexpand true :min 0 :max {max ?: 101} :value value :onchange onchange :round-digits 0)
+    (label :class "slider-value" :text "${round(value, 0)}${suffix ?: '%'}")
+    (box :visible {mute_click != ""}
+      (icon-button :icon {muted == true ? "󰝟" : "󰖁"} :onclick {mute_click ?: ""}
+                   :class "mute ${muted == true ? 'on' : ''}" :tooltip "Silenciar"))))
+
+;; Fila de lista seleccionable: icono, título, subtítulo y contenido extra a la derecha
+(defwidget list-row [icon title onclick ?subtitle ?selected ?color ?tooltip]
+  (eventbox :cursor "pointer" :tooltip tooltip
+    (button :class "list-row ${selected == true ? 'selected' : ''}" :onclick onclick
+      (box :space-evenly false :spacing 12
+        (label :class "list-row-icon c-${color ?: 'text'}" :text icon)
+        (box :orientation "v" :space-evenly false :valign "center" :hexpand true
+          (label :class "list-row-title" :halign "start" :limit-width 30 :text title)
+          (label :class "list-row-subtitle" :halign "start" :limit-width 34 :visible {(subtitle ?: "") != ""} :text {subtitle ?: ""}))
+        (children)))))
+
+;; Pastilla de texto (contadores, etiquetas de origen)
+(defwidget badge [text ?kind]
+  (label :class "badge ${kind}" :text text))
+
+;; Fila clave/valor
+(defwidget kv [key value]
+  (box :class "kv" :space-evenly false
+    (label :class "kv-key" :text key :hexpand true :halign "start")
+    (label :class "kv-value" :text value :halign "end" :limit-width 34)))
+
+;; Marco común de todos los popups
+(defwidget popup-frame [name ?class]
+  (box :class "popup ${name} ${class}" :orientation "v" :space-evenly false
+    (children)))

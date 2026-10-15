@@ -1,0 +1,64 @@
+// Configuración
+.settings-nav {
+  min-width: 170px;
+  padding-right: $gap;
+  border-right: $border-width solid $border;
+}
+.nav-item {
+  padding: 8px 12px;
+  border-radius: $radius-sm;
+  @include transition(background-color);
+  .glyph { font-size: $font-lg; color: $fg-dim; }
+  &:hover { background-color: $hover; }
+  &.selected { background-color: $accent; label { color: $on-accent; font-weight: bold; } .glyph { color: $on-accent; } }
+}
+.settings-content { padding: 0 6px 6px 4px; }
+.big-name { font-size: $font-lg; font-weight: bold; }
+.dim { color: $fg-dim; }
+.dim.small { font-size: $font-sm; }
+.card.selected { border-color: $accent; }
+.meter-label { min-width: 70px; }
+.meter-value { min-width: 44px; }
+progress.meter, .meter {
+  trough { min-height: 8px; border-radius: $radius-pill; background-color: $surface1; }
+  progress { min-height: 8px; border-radius: $radius-pill; background-color: $accent; }
+}
+@each $name, $color in $named-colors {
+  .meter.c-#{$name} progress { background-color: $color; }
+}
+.theme-card {
+  padding: 6px;
+  border-radius: $radius;
+  border: 2px solid transparent;
+  &:hover { background-color: $hover; }
+  &.selected { border-color: $accent; background-color: rgba($accent, 0.1); }
+  .theme-preview {
+    min-height: 44px;
+    min-width: 70px;
+    border-radius: $radius-sm;
+    padding: 8px;
+    border: $border-width solid $border;
+  }
+  .swatch { min-height: 26px; border-radius: $radius-pill; margin: 0 2px; }
+  .theme-name { font-size: $font-sm; }
+}
+.accent-dot {
+  min-width: 26px;
+  min-height: 26px;
+  border-radius: $radius-pill;
+  border: 3px solid transparent;
+  &.selected { border-color: $text; }
+}
+.setting-label { min-width: 190px; }
+.key-row {
+  padding: 6px 4px;
+  border-bottom: $border-width solid rgba($border, 0.5);
+  .key-combo {
+    min-width: 190px;
+    padding: 2px 8px;
+    border-radius: $radius-sm;
+    background-color: $surface0;
+    font-size: $font-sm;
+    font-weight: bold;
+  }
+}
