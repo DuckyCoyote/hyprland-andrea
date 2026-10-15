@@ -8,10 +8,10 @@
 """
 import asyncio
 
-from .. import config, eww
+from .. import config, eww, paths
 from ..daemon import Source
 
-POPUPS = {"launcher", "settings", "power", "network", "audio", "updates", "media", "weather", "calendar", "notifications"}
+POPUPS = {"launcher", "settings", "power", "network", "audio", "updates", "media", "weather", "calendar", "notifications", "keymap"}
 CLOSER = "popup-closer"
 
 
@@ -24,6 +24,7 @@ class PopupSource(Source):
 
     async def start(self) -> None:
         self.publish(self.state)
+        await self._close_windows()  # popups que quedaron abiertos de un daemon anterior
 
     @property
     def wm(self):
@@ -39,7 +40,15 @@ class PopupSource(Source):
             return f"popup desconocido: {name}"
         monitor = await self._resolve_monitor(monitor)
         screen = self.wm.screen_of(monitor)
-        if self.state["open"] and (self.state["open"] != name or self.state["monitor"] != monitor):
+        if name == "launcher":  # abre en Favoritas (o en Todas si aún no hay ninguna)
+            favs = config.read_state(paths.UI_STATE, {}).get("favorites", [])
+            await asyncio.to_thread(eww.update, launcher_query="",
+                                    launcher_cat="favorites" if favs else "all")
+        if name == "keymap":  # la lista la reescribe Hyprland en cada recarga
+            await self.hub.sources["system"].refresh(full=False)
+        # Si Eww ya tiene la ventana abierta (en otro monitor, o de un daemon anterior), `eww open`
+        # la dejaría donde está: se cierra cualquier popup salvo que sea el mismo en el mismo monitor.
+        if self.state["open"] != name or self.state["monitor"] != monitor:
             await self._close_windows()
         self.state.update(open=name, monitor=monitor, tab=tab or self.state["tab"] if name == self.state["open"] else tab, confirm="")
         self.publish(dict(self.state))
@@ -62,11 +71,34 @@ class PopupSource(Source):
             await asyncio.to_thread(eww.close, *ids)
 
     async def cmd_close(self) -> str:
-        await self._close_windows()
+        # primero se libera el teclado: si Eww no respondiera, Super seguiría funcionando
+        await self.wm.wm.popup_mode(False)
         self.state.update(open="", confirm="")
         self.publish(dict(self.state))
-        await self.wm.wm.popup_mode(False)
+        await self._close_windows()
         return "cerrado"
+
+    async def reset(self) -> None:
+        """Olvida el popup abierto y libera el teclado sin hablar con Eww (por si está colgado)."""
+        await self.wm.wm.popup_mode(False)
+        self.state.update(open="", confirm="")
+        self.publish(dict(self.state))
+
+    async def reopen(self) -> None:
+        """Tras recargar o reiniciar Eww: vuelve a abrir el popup que estaba abierto (o libera el
+        teclado si ya no se puede)."""
+        name, monitor = self.state["open"], self.state["monitor"]
+        if not name:
+            return
+        screen = self.wm.screen_of(monitor)
+        active = await asyncio.to_thread(eww.active_windows_or_none)
+        if active is None:
+            await self.cmd_close()
+            return
+        if config.load().get("popups", {}).get("close_on_click_outside", True) and CLOSER not in active:
+            await asyncio.to_thread(eww.open_window, "popup_closer", CLOSER, screen)
+        if name not in active and not await asyncio.to_thread(eww.open_window, name, name, screen):
+            await self.cmd_close()
 
     async def cmd_tab(self, tab: str) -> None:
         self.state["tab"] = tab

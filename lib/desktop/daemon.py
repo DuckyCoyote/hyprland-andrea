@@ -45,6 +45,7 @@ class Hub:
         self.subs: dict[str, set[asyncio.StreamWriter]] = {}
         self.sources: dict[str, Source] = {}
         self.servers = []
+        self.eww_lock = asyncio.Lock()  # serializa recargas de Eww y apertura de barras
 
     def add(self, source: Source) -> Source:
         self.sources[source.topic] = source
@@ -91,9 +92,13 @@ class Hub:
                 ok, msg = await self.execute(req.get("argv", []))
             except Exception as e:
                 ok, msg = False, f"error interno: {e!r}"
-            writer.write((json.dumps({"ok": ok, "msg": msg}, ensure_ascii=False) + "\n").encode())
-            await writer.drain()
-            writer.close()
+            try:
+                writer.write((json.dumps({"ok": ok, "msg": msg}, ensure_ascii=False) + "\n").encode())
+                await writer.drain()
+            except ConnectionError:
+                pass  # el cliente (desktopctl) se fue antes de la respuesta
+            finally:
+                writer.close()
 
         path = paths.socket_path("ctl")
         path.unlink(missing_ok=True)
@@ -170,4 +175,18 @@ def main() -> None:
     lock = _single_instance()  # noqa: F841
     # Los widgets y accesos rápidos invocan `desktopctl` por nombre.
     os.environ["PATH"] = f"{paths.ROOT / 'bin'}:{os.environ.get('PATH', '/usr/bin')}"
+    _preload_gtk()
     asyncio.run(build_hub().run())
+
+
+def _preload_gtk() -> None:
+    """Importa GTK/GdkPixbuf en el hilo principal antes de que las fuentes usen hilos: importar
+    gi.repository desde varios hilos a la vez deja módulos a medio inicializar
+    («GLib has no attribute Idle») y el tema de iconos no se cargaba."""
+    try:
+        import gi
+        gi.require_version("Gtk", "3.0")
+        gi.require_version("GdkPixbuf", "2.0")
+        from gi.repository import GdkPixbuf, GLib, Gtk  # noqa: F401
+    except Exception as e:
+        log(f"GTK no disponible (sin iconos de aplicaciones ni miniaturas): {e!r}")

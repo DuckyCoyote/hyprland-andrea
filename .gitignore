@@ -6,3 +6,4 @@ config/hypr/hypridle.conf
 config/kitty/theme.conf
 *.tmp
 __pycache__/
+config/nvim/lua/hyprland_desktop/palette.lua

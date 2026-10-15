@@ -1,7 +1,7 @@
 ;; Clima (Open-Meteo): actual, por horas y próximos días
 
 (defwindow weather
-  :geometry (geometry :x "330px" :y "0px" :width "400px" :anchor "top left")
+  :geometry (geometry :x "330px" :y "0px" :width "420px" :anchor "top left")
   :stacking "overlay"
   :focusable false
   :namespace "hd-popup"
@@ -14,8 +14,8 @@
       (label :wrap true :text {weather.loading == true ? "Cargando…" : (weather.error ?: "Sin datos")}))
     (box :visible {weather.available == true} :orientation "v" :space-evenly false :spacing 12
       (box :space-evenly false :spacing 12
-        (box :orientation "v" :space-evenly false :hexpand true
-          (label :class "weather-big-temp" :halign "start" :text "${weather.temp ?: '--'}${weather.unit ?: '°C'}")
+        (box :class "weather-now" :orientation "v" :space-evenly false :hexpand true
+          (label :class "weather-big-temp" :halign "start" :show-truncated false :text "${weather.temp ?: '--'}${weather.unit ?: '°C'}")
           (label :class "weather-desc" :halign "start" :wrap true :xalign 0 :text {weather.desc ?: ""}))
         (label :class "weather-big-glyph c-${weather.color ?: 'lavender'}" :text {weather.glyph ?: ""})
         (box :orientation "v" :space-evenly false :class "weather-details" :valign "center"

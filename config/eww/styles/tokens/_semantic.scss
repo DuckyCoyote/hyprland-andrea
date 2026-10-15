@@ -30,11 +30,12 @@ $font-lg:     $font-size + 3px;
 $font-xl:     $font-size + 10px;
 $glyph-size:  $font-size + 5px;
 
-// Colores con nombre disponibles como clase utilitaria .c-<nombre>
+// Colores con nombre disponibles como clase utilitaria .c-<nombre>. Son los colores de los
+// iconos: salen de la paleta de iconos del tema ($icon-*), que el tema monocromo fija en Mocha.
 $named-colors: (
-  "rosewater": $rosewater, "flamingo": $flamingo, "pink": $pink, "mauve": $mauve, "red": $red,
-  "maroon": $maroon, "peach": $peach, "yellow": $yellow, "green": $green, "teal": $teal, "sky": $sky,
-  "sapphire": $sapphire, "blue": $blue, "lavender": $lavender, "text": $text, "subtext0": $subtext0,
+  "rosewater": $icon-rosewater, "flamingo": $icon-flamingo, "pink": $icon-pink, "mauve": $icon-mauve, "red": $icon-red,
+  "maroon": $icon-maroon, "peach": $icon-peach, "yellow": $icon-yellow, "green": $icon-green, "teal": $icon-teal, "sky": $icon-sky,
+  "sapphire": $icon-sapphire, "blue": $icon-blue, "lavender": $icon-lavender, "text": $text, "subtext0": $subtext0,
   "overlay2": $overlay2, "accent": $accent
 );
 

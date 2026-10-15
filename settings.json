@@ -3,19 +3,21 @@
 
   "apps": {
     "terminal": "kitty",
-    "browser": "firefox",
+    "browser": "default",
     "file_manager": "dolphin",
     "editor": "code",
-    "system_monitor": "kitty -e htop"
+    "system_monitor": "kitty -e htop",
+    "shell": "fish"
   },
 
   "quick_launch": [
     { "name": "Sistema",     "icon": "assets:zombie.png",   "exec": "desktopctl popup toggle settings", "tooltip": "Información del sistema" },
     { "name": "Terminal",    "icon": "assets:terminal.png", "exec": "@terminal",     "tooltip": "Terminal" },
-    { "name": "Navegador",   "icon": "assets:firefox.png",  "exec": "@browser",      "tooltip": "Navegador web" },
+    { "name": "Navegador",   "icon": "assets:firefox.png",  "exec": "@browser",      "tooltip": "Navegador predeterminado" },
     { "name": "Archivos",    "icon": "assets:files.png",    "exec": "@file_manager", "tooltip": "Explorador de archivos" },
     { "name": "Editor",      "icon": "assets:notes.png",    "exec": "@editor",       "tooltip": "Editor de código" },
-    { "name": "Discord",     "icon": "theme:discord",       "exec": "discord",       "tooltip": "Discord" }
+    { "name": "Discord",     "icon": "theme:discord",       "exec": "discord",       "tooltip": "Discord" },
+    { "name": "Teams",       "icon": "assets:teams.png",    "exec": "teams-for-linux", "tooltip": "Microsoft Teams" }
   ],
 
   "monitors": [
@@ -24,9 +26,9 @@
   ],
 
   "bar": {
-    "modules": ["launcher", "quicklaunch", "clock", "workspaces", "media", "tray", "system"],
+    "modules": ["launcher", "quicklaunch", "window", "clock", "workspaces", "media", "tray", "system"],
     "per_monitor": {
-      "HDMI-A-1": ["launcher", "clock", "workspaces", "system"]
+      "HDMI-A-1": ["launcher", "window", "clock", "workspaces", "system"]
     }
   },
 
@@ -65,6 +67,7 @@
   },
 
   "wallpaper": "",
+  "wallpaper_dir": "",
 
   "appearance": {
     "theme": "mocha",
@@ -78,6 +81,10 @@
     "opacity": 0.92,
     "shadows": true,
     "animations": true
+  },
+
+  "nvim": {
+    "sync_theme": true
   },
 
   "popups": {

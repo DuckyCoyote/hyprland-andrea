@@ -54,8 +54,9 @@ end
 local screenshot = [[sh -c 'd="$(xdg-user-dir PICTURES 2>/dev/null || echo "$HOME")/Capturas"; mkdir -p "$d"; f="$d/$(date +%Y-%m-%d_%H-%M-%S).png"; ]]
 
 -- { teclas, descripción, acción, opciones }
+-- Las cadenas sueltas abren una sección (agrupan los atajos en la chuleta flotante, Super+S).
 local binds = {
-    -- Aplicaciones
+    "Aplicaciones",
     { M .. " + Return",        "Abrir terminal",                         exec(apps.terminal or "kitty") },
     { M .. " + B",             "Abrir navegador",                        exec(apps.browser or "firefox") },
     { M .. " + E",             "Abrir explorador de archivos",           exec(apps.file_manager or "dolphin") },
@@ -63,9 +64,9 @@ local binds = {
     { M .. " + P",             "Lanzador de aplicaciones (menubar)",     ctl("popup toggle launcher focused") },
     { M .. " + SHIFT + D",     "Lanzador de aplicaciones (rofi combi)",  ctl("popup toggle launcher focused") },
 
-    -- Paneles del entorno
+    "Paneles del entorno",
     { M .. " + W",             "Configuración (menú principal)",         ctl("popup toggle settings focused system") },
-    { M .. " + S",             "Mostrar atajos de teclado",              ctl("popup toggle settings focused keys") },
+    { M .. " + S",             "Chuleta de atajos (flotante)",           ctl("popup toggle keymap focused") },
     { M .. " + SHIFT + T",     "Selector de temas y fuentes",            ctl("popup toggle settings focused appearance") },
     { M .. " + SHIFT + Q",     "Menú de energía / cerrar sesión",        ctl("popup toggle power focused") },
     { M .. " + ALT + N",       "Panel de red",                           ctl("popup toggle network focused") },
@@ -77,14 +78,14 @@ local binds = {
     { M .. " + CTRL + R",      "Recargar Hyprland y Eww",                exec("hyprctl reload && " .. ctx.ctl("apply")) },
     { M .. " + ALT + L",       "Bloquear pantalla",                      exec("loginctl lock-session") },
 
-    -- Espacios de trabajo (por monitor, como las tags de Awesome)
+    "Espacios de trabajo",
     { M .. " + Left",          "Espacio anterior del monitor",           cycle_workspace(-1) },
     { M .. " + Right",         "Espacio siguiente del monitor",          cycle_workspace(1) },
     { M .. " + Escape",        "Volver al espacio anterior",             dsp.focus({ workspace = "previous" }) },
     { M .. " + mouse_down",    "Espacio siguiente (rueda)",              cycle_workspace(1) },
     { M .. " + mouse_up",      "Espacio anterior (rueda)",               cycle_workspace(-1) },
 
-    -- Foco y orden de ventanas
+    "Foco y orden de ventanas",
     { M .. " + J",             "Enfocar ventana siguiente",              dsp.window.cycle_next({ next = true }) },
     { M .. " + K",             "Enfocar ventana anterior",               dsp.window.cycle_next({ next = false }) },
     { M .. " + SHIFT + J",     "Intercambiar con la siguiente",          dsp.window.swap({ next = true }) },
@@ -98,7 +99,7 @@ local binds = {
     { M .. " + ALT + up",      "Enfocar arriba",                         dsp.focus({ direction = "up" }) },
     { M .. " + ALT + down",    "Enfocar abajo",                          dsp.focus({ direction = "down" }) },
 
-    -- Disposición (layout)
+    "Disposición",
     { M .. " + L",             "Ampliar área maestra",                   grow(0.05),  { repeating = true } },
     { M .. " + H",             "Reducir área maestra",                   grow(-0.05), { repeating = true } },
     { M .. " + SHIFT + H",     "Añadir ventana maestra",                 dsp.layout("addmaster") },
@@ -108,7 +109,7 @@ local binds = {
     { M .. " + space",         "Disposición siguiente",                  cycle_layout(1) },
     { M .. " + SHIFT + space", "Disposición anterior",                   cycle_layout(-1) },
 
-    -- Ventana (clientkeys)
+    "Ventana",
     { M .. " + F",             "Pantalla completa",                      dsp.window.fullscreen({ mode = "fullscreen" }) },
     { M .. " + M",             "Maximizar / restaurar",                  dsp.window.fullscreen({ mode = "maximized" }) },
     { M .. " + SHIFT + C",     "Cerrar ventana",                         dsp.window.close() },
@@ -121,13 +122,13 @@ local binds = {
     { M .. " + mouse:272",     "Mover ventana con el ratón",             dsp.window.drag(),   { mouse = true } },
     { M .. " + mouse:273",     "Redimensionar con el ratón",             dsp.window.resize(), { mouse = true } },
 
-    -- Capturas
+    "Capturas",
     { M .. " + SHIFT + S",     "Captura de una región",
         exec(screenshot .. [[grim -g "$(slurp)" "$f" && wl-copy < "$f" && notify-send -i "$f" "Captura guardada" "$f"']]) },
     { "Print",                 "Captura de pantalla completa",
         exec(screenshot .. [[grim "$f" && wl-copy < "$f" && notify-send -i "$f" "Captura guardada" "$f"']]) },
 
-    -- Teclas multimedia (también funcionan con la pantalla bloqueada)
+    "Multimedia", -- también funcionan con la pantalla bloqueada
     { "XF86AudioRaiseVolume",  "Subir volumen",   exec("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true } },
     { "XF86AudioLowerVolume",  "Bajar volumen",   exec("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"),      { locked = true, repeating = true } },
     { "XF86AudioMute",         "Silenciar",       exec("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),     { locked = true } },
@@ -141,6 +142,7 @@ local binds = {
 }
 
 -- Espacios 1..9 del monitor actual
+table.insert(binds, "Espacios de trabajo")
 for slot = 1, 9 do
     local key = tostring(slot)
     table.insert(binds, { M .. " + " .. key, "Ir al espacio " .. key,
@@ -156,14 +158,27 @@ local function json_string(s)
     return '"' .. tostring(s):gsub('[%c"\\]', function(c) return string.format("\\u%04x", c:byte()) end) .. '"'
 end
 
-local cheat = {}
+local cheat, section = {}, ""
+local function add_cheat(keys, desc)
+    table.insert(cheat, "{\"keys\":" .. json_string(keys) .. ",\"desc\":" .. json_string(desc)
+        .. ",\"section\":" .. json_string(section) .. "}")
+end
 for _, b in ipairs(binds) do
-    hl.bind(b[1], b[3], b[4])
-    if not b[1]:find("mouse") and not b[1]:find("XF86") and not b[1]:match(" %+ [2-9]$") then
-        table.insert(cheat, "{\"keys\":" .. json_string(b[1]:gsub("SUPER", "Super")) .. ",\"desc\":" .. json_string(b[2]) .. "}")
+    if type(b) == "string" then
+        section = b
+    else
+        hl.bind(b[1], b[3], b[4])
+        if not b[1]:find("mouse") and not b[1]:find("XF86") and not b[1]:match(" %+ %d$") then
+            add_cheat((b[1]:gsub("SUPER", "Super")), b[2])
+        end
     end
 end
-table.insert(cheat, '{"keys":"Super + 1…9","desc":"Ir / mover (SHIFT) / enviar (CTRL) al espacio N del monitor actual"}')
+section = "Espacios de trabajo"
+add_cheat("Super + 1…9", "Ir al espacio N del monitor actual")
+add_cheat("Super + SHIFT + 1…9", "Mover la ventana al espacio N")
+add_cheat("Super + CTRL + 1…9", "Enviar la ventana al espacio N (sin seguirla)")
+section = "Multimedia"
+add_cheat("Teclas multimedia", "Volumen, micrófono, brillo y reproductor")
 
 -- Modo «popup»: mientras hay un panel abierto, Escape lo cierra (lo activa desktopd).
 hl.define_submap("hd-popup", function()

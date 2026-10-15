@@ -46,7 +46,7 @@
                           toast ? "desktopctl notifications hide ${n.id}" : ""}
           (box :space-evenly false :spacing 12
             (box :valign "start" :class "notify-icon-box"
-              (image :visible {n.image != ""} :path {n.image} :image-width 40 :image-height 40)
+              (image :visible {n.image != ""} :path {n.image != "" ? n.image : "${EWW_CONFIG_DIR}/../../assets/icons/blank.png"} :image-width 40 :image-height 40)
               (label :visible {n.image == ""} :class "notify-glyph ${n.urgency == 2 ? 'c-red' : 'c-accent'}" :text {n.glyph}))
             (box :orientation "v" :space-evenly false :hexpand true :spacing 2
               (box :space-evenly false :spacing 8

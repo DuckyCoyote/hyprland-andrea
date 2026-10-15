@@ -88,8 +88,28 @@ def themes() -> dict:
     return dict(sorted(found.items(), key=lambda kv: (order.index(kv[0]) if kv[0] in order else 99, kv[0])))
 
 
+def default_browser() -> str:
+    """Id del .desktop del navegador predeterminado del sistema (p. ej. 'brave-browser'), o ''."""
+    import subprocess
+    try:
+        out = subprocess.run(["xdg-settings", "get", "default-web-browser"],
+                             capture_output=True, text=True, timeout=5).stdout.strip()
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return ""
+    return out.removesuffix(".desktop")
+
+
+def app_command(settings: dict, name: str) -> str:
+    """Comando de settings.apps.<name>; "default" en `browser` = navegador predeterminado."""
+    value = settings.get("apps", {}).get(name, name)
+    if name == "browser" and value == "default":
+        desktop = default_browser()
+        return f"gtk-launch {desktop}" if desktop else "xdg-open https://"
+    return value
+
+
 def resolve_app(settings: dict, command: str) -> str:
     """'@terminal' -> comando configurado en settings.apps."""
     if command.startswith("@"):
-        return settings.get("apps", {}).get(command[1:], command[1:])
+        return app_command(settings, command[1:])
     return command

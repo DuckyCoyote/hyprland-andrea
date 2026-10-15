@@ -1,7 +1,9 @@
 ;; Lanzador de aplicaciones (launcher.png / mockup)
 ;; - Búsqueda mientras se escribe: filtro jq sobre la lista publicada por desktopd (sin procesos).
 ;; - Teclado: escribir filtra, Enter abre el primer resultado, Tab/flechas recorren la cuadrícula,
-;;   Escape cierra (modo de teclado del compositor). Clic derecho: añadir/quitar de Favoritas.
+;;   Escape cierra (modo de teclado del compositor).
+;; - Favoritas: la estrella de cada app (o clic derecho) la añade/quita. El lanzador abre en
+;;   Favoritas (desktopd elige la categoría al abrirlo); al escribir se busca en todas las apps.
 
 (defwindow launcher
   :geometry (geometry :x "0px" :y "0px" :width "640px" :height "460px" :anchor "top left")
@@ -11,7 +13,7 @@
   (popup-frame :name "launcher-popup"
     (launcher-body
       :results {jq(apps.apps ?: [],
-        '[.[] | select(.cats | contains(",${launcher_cat},")) | select(.search | contains("${replace(launcher_query, "[^[:alnum:] ._+-]", "")}" | ascii_downcase))]'
+        '[.[] | select(.cats | contains(",${launcher_query != "" ? "all" : launcher_cat},")) | select(.search | contains("${replace(launcher_query, "[^[:alnum:] ._+-]", "")}" | ascii_downcase))]'
         + (launcher_cat == "recent" ? ' | sort_by(-.last)' : '') + ' | .[0:40]')})))
 
 (defwidget launcher-body [results]
@@ -34,14 +36,24 @@
       ;; Cuadrícula de 4 columnas
       (scroll :vscroll true :hscroll false :hexpand true :vexpand true
         (box :class "app-grid" :orientation "v" :space-evenly false :spacing 8
-          (label :class "status-line" :visible {arraylength(results) == 0} :text "Sin resultados")
+          (label :class "status-line" :visible {arraylength(results) == 0} :wrap true
+                 :text {launcher_cat == "favorites" && launcher_query == ""
+                        ? "Aún no tienes favoritas: pulsa la estrella ☆ de una app (en «Todas») para añadirla."
+                        : "Sin resultados"})
           (for row in {jq(results, '[range(0; length; 4) as $i | .[$i:$i+4]]')}
             (box :space-evenly false :spacing 8 :halign "start"
               (for app in row
-                (eventbox :cursor "pointer"
-                  (button :class "app-tile ${app.fav ? 'fav' : ''}" :tooltip {app.name}
-                          :onclick "desktopctl apps launch '${app.id}' ; ${EWW_CMD} update launcher_query=''"
-                          :onrightclick "desktopctl apps favorite '${app.id}'"
-                    (box :orientation "v" :space-evenly false :spacing 6
-                      (image :path {app.icon} :image-width 44 :image-height 44)
-                      (label :class "app-name" :limit-width 11 :text {app.name}))))))))))))
+                (overlay
+                  (eventbox :cursor "pointer"
+                    (button :class "app-tile ${app.fav ? 'fav' : ''}" :tooltip {app.name}
+                            :onclick "desktopctl apps launch '${app.id}' ; ${EWW_CMD} update launcher_query=''"
+                            :onrightclick "desktopctl apps favorite '${app.id}'"
+                      (box :orientation "v" :space-evenly false :spacing 6
+                        (image :path {(app.icon ?: "") != "" ? app.icon : "${EWW_CONFIG_DIR}/../../assets/icons/blank.png"} :image-width 44 :image-height 44)
+                        (label :class "app-name" :limit-width 11 :text {app.name}))))
+                  ;; estrella de favorita en la esquina superior derecha
+                  (eventbox :cursor "pointer" :halign "end" :valign "start"
+                    (button :class "fav-star ${app.fav ? 'on' : ''}"
+                            :tooltip {app.fav ? "Quitar de favoritas" : "Añadir a favoritas"}
+                            :onclick "desktopctl apps favorite '${app.id}'"
+                      (label :text {app.fav ? "󰓎" : "󰓒"}))))))))))))

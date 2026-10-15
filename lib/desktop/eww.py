@@ -36,8 +36,11 @@ def start_daemon() -> None:
         return
     # Los widgets invocan `desktopctl` y `desktop-sub` por nombre: los ponemos en el PATH de Eww.
     env = {**os.environ, "PATH": f"{paths.ROOT / 'bin'}:{os.environ.get('PATH', '/usr/bin')}"}
-    subprocess.Popen(_cmd("daemon"), stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                     stderr=subprocess.DEVNULL, start_new_session=True, env=env)
+    # En primer plano (sin daemonizar) para conservar su registro: errores de widgets y bloqueos
+    paths.CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    with open(paths.CACHE_DIR / "eww.log", "w") as logfile:
+        subprocess.Popen(_cmd("daemon", "--no-daemonize"), stdin=subprocess.DEVNULL, stdout=logfile,
+                         stderr=subprocess.STDOUT, start_new_session=True, env=env)
     for _ in range(50):
         if running():
             return
@@ -71,16 +74,38 @@ def close(*window_ids: str) -> None:
 
 
 def active_windows() -> dict[str, str]:
-    """{id: nombre_de_ventana}"""
+    """{id: nombre_de_ventana} (vacío si Eww no responde; ver active_windows_or_none)."""
+    return active_windows_or_none() or {}
+
+
+def active_windows_or_none() -> dict[str, str] | None:
+    """Como active_windows, pero None si Eww no respondió (p. ej. en plena recarga): así no se
+    confunde «no hay ventanas» con «no lo sé» y no se abren barras duplicadas."""
     code, out = call("active-windows")
+    if code != 0:
+        return None
     result = {}
-    if code == 0:
-        for line in out.splitlines():
-            if ": " in line:
-                wid, name = line.split(": ", 1)
-                result[wid.strip()] = name.strip()
+    for line in out.splitlines():
+        if ": " in line:
+            wid, name = line.split(": ", 1)
+            result[wid.strip()] = name.strip()
     return result
 
 
 def reload() -> None:
-    call("reload")
+    call("reload", timeout=20)
+
+
+def close_all() -> None:
+    call("close-all")
+
+
+def restart_daemon() -> None:
+    """Reinicia el daemon de Eww: única forma de eliminar ventanas huérfanas que Eww ya no controla
+    o de recuperarlo si se colgó (en ese caso `eww kill` no responde y se termina el proceso)."""
+    import time
+    call("kill", timeout=3)
+    subprocess.run(["pkill", "-f", f"{EWW} -c {paths.EWW_DIR} daemon"], stderr=subprocess.DEVNULL)
+    time.sleep(0.5)
+    subprocess.run(["pkill", "-9", "-f", f"{EWW} -c {paths.EWW_DIR} "], stderr=subprocess.DEVNULL)
+    start_daemon()

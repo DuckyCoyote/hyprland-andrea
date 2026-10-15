@@ -7,6 +7,7 @@ La búsqueda mientras se escribe se hace en Eww con jq sobre esta lista (sin pro
 import asyncio
 import os
 import shlex
+import threading
 import time
 from pathlib import Path
 
@@ -81,8 +82,49 @@ def _parse_desktop(path: Path, lang: str) -> dict | None:
             "tryexec": entry.get("TryExec", "")}
 
 
+def window_icon_names() -> dict[str, str]:
+    """Clase de ventana (en minúsculas) -> nombre de icono, a partir de los .desktop.
+
+    Usa StartupWMClass, el nombre del archivo (org.kde.dolphin -> también «dolphin») y el
+    ejecutable. Incluye entradas NoDisplay: muchas apps se identifican solo por ellas.
+    """
+    names: dict[str, str] = {}
+    for d in reversed(_data_dirs()):  # el usuario tiene prioridad: se escribe al final
+        for path in d.glob("*.desktop"):
+            fields = {}
+            try:
+                for raw in path.read_text(encoding="utf-8", errors="replace").splitlines():
+                    if raw.startswith("[") and raw.strip() != "[Desktop Entry]" and fields:
+                        break
+                    if "=" in raw and not raw.startswith("#"):
+                        k, v = raw.split("=", 1)
+                        fields.setdefault(k.strip(), v.strip())
+            except OSError:
+                continue
+            icon = fields.get("Icon", "")
+            if not icon:
+                continue
+            stem = path.stem.lower()
+            keys = {stem, stem.rsplit(".", 1)[-1]}
+            if fields.get("StartupWMClass"):
+                keys.add(fields["StartupWMClass"].lower())
+            exe = fields.get("Exec", "").split(" ", 1)[0]
+            if exe:
+                keys.add(Path(exe).name.lower())
+            for k in keys:
+                names[k] = icon
+    return names
+
+
+_GTK_LOCK = threading.Lock()  # GtkIconTheme no es seguro entre hilos
+
+
 class IconResolver:
     def __init__(self) -> None:
+        with _GTK_LOCK:
+            self._init()
+
+    def _init(self) -> None:
         self.theme = None
         try:
             import gi
@@ -92,7 +134,9 @@ class IconResolver:
             name = config.load().get("appearance", {}).get("icon_theme") or self._system_theme()
             if name:
                 self.theme.set_custom_theme(name)
-        except Exception:
+        except Exception as e:
+            from ..util import log
+            log(f"iconos: no se pudo cargar el tema de iconos GTK: {e!r}")
             self.theme = None
 
     @staticmethod
@@ -106,10 +150,11 @@ class IconResolver:
         if icon.startswith("/"):
             return icon if Path(icon).is_file() else ""
         if self.theme:
-            for name in (icon, icon.lower(), "application-x-executable"):
-                info = self.theme.lookup_icon(name, size, 0)
-                if info and info.get_filename():
-                    return info.get_filename()
+            with _GTK_LOCK:
+                for name in (icon, icon.lower(), "application-x-executable"):
+                    info = self.theme.lookup_icon(name, size, 0)
+                    if info and info.get_filename():
+                        return info.get_filename()
         for ext in ("png", "svg", "xpm"):
             p = Path("/usr/share/pixmaps") / f"{icon}.{ext}"
             if p.is_file():

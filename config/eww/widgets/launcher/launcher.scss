@@ -24,6 +24,14 @@
   border: $border-width solid $border;
   @include transition(background-color, border-color);
   &:hover, &:focus { background-color: $hover; border-color: $accent; }
-  &.fav { border-color: rgba($pink, 0.6); }
+  &.fav { border-color: rgba($yellow, 0.6); }
   .app-name { font-size: $font-sm; }
+}
+.fav-star {
+  margin: 4px;
+  padding: 0 4px;
+  border-radius: $radius-pill;
+  label { font-size: $font-size + 5px; color: $fg-muted; }
+  &:hover { background-color: $hover-strong; label { color: $icon-yellow; } }
+  &.on label { color: $icon-yellow; }
 }

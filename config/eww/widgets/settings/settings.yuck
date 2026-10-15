@@ -84,13 +84,58 @@
         (eventbox :cursor "pointer"
           (button :class "accent-dot ${a.selected ? 'selected' : ''}" :style "background-color: ${a.hex};"
                   :onclick "desktopctl appearance set accent ${a.name}" :tooltip {a.name}))))
+    (section-title :text "Fondo de pantalla"
+      (box :space-evenly false
+        (icon-button :icon "󰉋" :class "flat" :onclick "desktopctl appearance open-wallpaper-dir"
+                     :tooltip "Abrir la carpeta de fondos")
+        (icon-button :icon "󰑐" :class "flat" :onclick "desktopctl appearance rescan" :tooltip "Volver a leer la carpeta")))
+    (label :class "dim small" :halign "start" :xalign 0 :wrap true
+           :text {arraylength(appearance.wallpaper_rows ?: []) == 0
+                  ? "Copia imágenes en ${appearance.wallpaper_dir ?: ''} y pulsa 󰑐."
+                  : "Carpeta: ${appearance.wallpaper_dir ?: ''}"})
+    (box :orientation "v" :space-evenly false :spacing 8
+      (for row in {appearance.wallpaper_rows ?: []}
+        (box :space-evenly true :spacing 8
+          (for w in row
+            (box
+            (eventbox :cursor "pointer" :visible {!(w.placeholder ?: false)}
+              (button :class "wall-card ${w.selected ? 'selected' : ''}" :tooltip {w.name}
+                      :onclick "desktopctl appearance set wallpaper '${w.path}'"
+                (box :class "wall-thumb" :style "background-image: url('${w.thumb ?: ''}');"))))))))
+    (section-title :text "Cursor")
+    (box :orientation "v" :space-evenly false :spacing 8
+      (for row in {appearance.cursor_rows ?: []}
+        (box :space-evenly true :spacing 8
+          (for c in row
+            (box
+            (eventbox :cursor "pointer" :visible {!(c.placeholder ?: false)}
+              (button :class "cursor-card ${c.selected ? 'selected' : ''}" :tooltip {c.name}
+                      :onclick "desktopctl appearance set cursor_theme '${c.name}'"
+                (box :space-evenly false :spacing 10
+                  (image :path {(c.preview ?: "") != "" ? c.preview : "${EWW_CONFIG_DIR}/../../assets/icons/blank.png"} :image-width 28 :image-height 28)
+                  (label :class "cursor-name" :halign "start" :hexpand true :xalign 0 :limit-width 22
+                         :text {c.label ?: ""})))))))))
     (box :class "card" :orientation "v" :space-evenly false :spacing 10
+      (setting-slider :label "Tamaño del cursor" :key "cursor_size" :min 16 :max 64 :value {appearance.cursor_size ?: 24}))
+    (section-title :text "Texto y formas")
+    (box :class "card" :orientation "v" :space-evenly false :spacing 10
+      ;; Desplegable propio: el combo de GTK no toma el tema de Eww y salía en negro
       (box :space-evenly false :spacing 10
-        (label :text "Fuente" :hexpand true :halign "start")
-        (combo-box-text :class "font-combo" :items {appearance.fonts ?: []}
-                        :onchange "desktopctl appearance set font_family '{}'"
-                        :tooltip "Actual: ${appearance.font_family ?: ''}"))
-      (label :class "dim small" :halign "end" :text "Actual: ${appearance.font_family ?: ''}")
+        (label :class "setting-label" :halign "start" :xalign 0 :text "Fuente")
+        (eventbox :cursor "pointer" :hexpand true
+          (button :class "font-picker" :onclick "${EWW_CMD} update font_picker=${!font_picker}"
+            (box :space-evenly false :spacing 8
+              (label :class "font-current" :hexpand true :halign "start" :xalign 0
+                     :limit-width 38 :text {appearance.font_family ?: ""})
+              (label :class "glyph" :text {font_picker ? "󰅃" : "󰅀"})))))
+      (revealer :reveal font_picker :transition "slidedown" :duration "150ms"
+        (scroll :class "font-list" :vscroll true :hscroll false :height 190
+          (box :orientation "v" :space-evenly false
+            (for f in {appearance.fonts ?: []}
+              (eventbox :cursor "pointer"
+                (button :class "font-option ${f == appearance.font_family ? 'selected' : ''}"
+                        :onclick "${EWW_CMD} update font_picker=false; desktopctl appearance set font_family '${f}'"
+                  (label :halign "start" :xalign 0 :text f)))))))
       (setting-slider :label "Tamaño de fuente" :key "font_size" :min 8 :max 24 :value {appearance.font_size ?: 13})
       (setting-slider :label "Radio de bordes" :key "radius" :min 0 :max 24 :value {appearance.radius ?: 10})
       (setting-slider :label "Espaciado" :key "spacing" :min 2 :max 20 :value {appearance.spacing ?: 8})
@@ -159,7 +204,7 @@
     (box :class "card list" :orientation "v" :space-evenly false
       (for q in {system.quick_launch ?: []}
         (box :class "pkg-row" :space-evenly false :spacing 12
-          (box (image :visible {q.image != ""} :path {q.image} :image-width 22 :image-height 22)
+          (box (image :visible {q.image != ""} :path {q.image != "" ? q.image : "${EWW_CONFIG_DIR}/../../assets/icons/blank.png"} :image-width 22 :image-height 22)
                (label :visible {q.image == ""} :class "glyph" :text {q.glyph}))
           (label :class "pkg-name" :halign "start" :hexpand true :text {q.name})
           (label :class "dim" :limit-width 30 :text {q.exec}))))

@@ -1,0 +1,33 @@
+// Chuleta de atajos flotante
+.keymap-popup {
+  padding: $gap-lg + 6px;
+}
+.keymap-header {
+  margin-bottom: $gap-lg;
+  .keymap-icon { font-size: $font-xl + 10px; }
+  .panel-title { font-size: $font-xl; }
+}
+.keymap-section {
+  padding: $gap $gap + 4px;
+  border-radius: $radius;
+  background-color: $bg-alt;
+  border: $border-width solid $border;
+}
+.keymap-section-title {
+  margin-bottom: $gap-sm;
+  color: $accent;
+  font-weight: bold;
+  font-size: $font-lg + 1px;
+}
+.keymap-row {
+  padding: 5px 0;
+  border-bottom: $border-width solid rgba($border, 0.4);
+  .keymap-desc { font-size: $font-size + 1px; }
+  .key-combo {
+    padding: 2px 8px;
+    border-radius: $radius-sm;
+    background-color: $surface0;
+    font-size: $font-size;
+    font-weight: bold;
+  }
+}

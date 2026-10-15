@@ -101,6 +101,8 @@ class SystemSource(Source):
         if full:
             await asyncio.gather(self._services(), self._power_profiles())
         settings = config.load()
+        # escrito por config/hypr/modules/keybinds.lua al cargar la configuración
+        keybinds = config.read_state(paths.RUNTIME_DIR / "keybinds.json", [])
         self.publish({
             **self.static,
             "wm": (self.hub.get("wm") or {}).get("wm", ""),
@@ -111,8 +113,8 @@ class SystemSource(Source):
             "services": self.services,
             "idle": settings.get("idle", {}),
             "quick_launch": self._quick_launch(settings),
-            # escrito por config/hypr/modules/keybinds.lua al cargar la configuración
-            "keybinds": config.read_state(paths.RUNTIME_DIR / "keybinds.json", []),
+            "keybinds": keybinds,
+            "keymap": _keymap_columns(keybinds),
         })
 
     def _quick_launch(self, settings: dict) -> list:
@@ -120,6 +122,8 @@ class SystemSource(Source):
         out = []
         for i, item in enumerate(settings.get("quick_launch", [])):
             icon, image, glyph = item.get("icon", ""), "", ""
+            if icon == "default-browser":  # icono del navegador predeterminado del sistema
+                icon = "theme:" + (config.default_browser() or "web-browser")
             if icon.startswith("assets:"):
                 image = str(paths.ASSETS_DIR / "icons" / icon[7:])
             elif icon.startswith("theme:"):
@@ -198,3 +202,21 @@ class SystemSource(Source):
     async def cmd_uptime(self) -> str:
         return _uptime()
 
+
+def _keymap_columns(keybinds: list, columns: int = 3) -> list:
+    """Agrupa los atajos por sección y reparte las secciones en columnas de altura parecida
+    (para la chuleta flotante de Super+S)."""
+    sections: dict[str, list] = {}
+    for k in keybinds:
+        sections.setdefault(k.get("section") or "General", []).append(k)
+    cols = [{"rows": 0, "sections": []} for _ in range(columns)]
+    for title, items in sections.items():  # en orden: llena columna a columna
+        target = next((c for c in cols if c["rows"] + len(items) <= _keymap_height(sections, columns)), cols[-1])
+        target["sections"].append({"title": title, "items": items})
+        target["rows"] += len(items) + 2
+    return [c["sections"] for c in cols]
+
+
+def _keymap_height(sections: dict, columns: int) -> int:
+    total = sum(len(v) + 2 for v in sections.values())
+    return max(max((len(v) for v in sections.values()), default=0), -(-total // columns))

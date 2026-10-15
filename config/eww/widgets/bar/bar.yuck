@@ -15,7 +15,8 @@
   (centerbox :class "bar"
     (box :halign "start" :space-evenly false :spacing {appearance.spacing ?: 8}
       (box :visible {matches(modules, ",launcher,")} (bar-launcher :monitor monitor))
-      (box :visible {matches(modules, ",quicklaunch,")} (bar-quicklaunch))
+      (box :visible {matches(modules, ",quicklaunch,") || matches(modules, ",window,")}
+        (bar-quicklaunch :monitor monitor :modules modules))
       (box :visible {matches(modules, ",clock,")} (bar-clock :monitor monitor)))
     (box :halign "center" :visible {matches(modules, ",workspaces,") && wm.has_workspaces}
       (bar-workspaces :monitor monitor))
@@ -30,17 +31,29 @@
       (button :class "bar-launcher" :tooltip "Aplicaciones"
               :onclick "desktopctl popup toggle launcher ${monitor}"
               :onrightclick "desktopctl popup toggle settings ${monitor} appearance"
-        (image :class "launcher-icon" :path "${system.assets ?: ''}/icons/dashboard.png" :image-width 26 :image-height 26)))))
+        (image :class "launcher-icon" :path "${EWW_CONFIG_DIR}/../../assets/icons/dashboard.png" :image-width 26 :image-height 26)))))
 
-(defwidget bar-quicklaunch []
+;; Accesos rápidos y, tras un separador vertical, el icono de la ventana enfocada en el monitor
+(defwidget bar-quicklaunch [monitor modules]
   (box :class "bar-group quicklaunch" :space-evenly false :spacing 14
-    (for item in {system.quick_launch ?: []}
-      (eventbox :cursor "pointer"
-        (button :class "quick-item" :tooltip {item.tooltip ?: item.name}
-                :onclick "desktopctl system quick ${item.index}"
-          (box
-            (image :visible {item.image != ""} :path {item.image} :image-width 22 :image-height 22)
-            (label :visible {item.image == ""} :class "glyph" :text {item.glyph ?: ""})))))))
+    (box :visible {matches(modules, ",quicklaunch,")} :space-evenly false :spacing 14
+      (for item in {system.quick_launch ?: []}
+        (eventbox :cursor "pointer"
+          (button :class "quick-item" :tooltip {item.tooltip ?: item.name}
+                  :onclick "desktopctl system quick ${item.index}"
+            (box
+              (image :visible {item.image != ""} :path {item.image != "" ? item.image : "${EWW_CONFIG_DIR}/../../assets/icons/blank.png"} :image-width 22 :image-height 22)
+              (label :visible {item.image == ""} :class "glyph" :text {item.glyph ?: ""}))))))
+    (box :class "bar-separator" :visible {matches(modules, ",quicklaunch,") && matches(modules, ",window,")})
+    (box :visible {matches(modules, ",window,")} (bar-window :monitor monitor))))
+
+(defwidget bar-window [monitor]
+  (box :class "focused-window ${(wm.windows?.[monitor]?.class ?: '') == '' ? 'none' : ''}"
+       :tooltip {wm.windows?.[monitor]?.title ?: "Escritorio vacío"}
+    (image :visible {(wm.windows?.[monitor]?.icon ?: "") != ""}
+           :path {(wm.windows?.[monitor]?.icon ?: "") != "" ? wm.windows[monitor].icon : "${EWW_CONFIG_DIR}/../../assets/icons/blank.png"} :image-width 22 :image-height 22)
+    (label :visible {(wm.windows?.[monitor]?.icon ?: "") == ""} :class "glyph"
+           :text {(wm.windows?.[monitor]?.class ?: "") == "" ? "󰇄" : "󰖯"})))
 
 ;; ── Grupo B: fecha y clima ──────────────────────────────────────────────────
 (defwidget bar-clock [monitor]
@@ -66,7 +79,7 @@
           ;; Iconos del rice Andrea: pacman = activo, fantasma = ocupado/urgente, círculo = vacío
           (button :class "ws ${ws.state}" :onclick "desktopctl wm focus ${ws.id}"
                   :tooltip "Espacio ${ws.label}${ws.state == 'urgent' ? ' (requiere atención)' : ''}"
-            (image :path "${system.assets ?: ''}/icons/${ws.state == 'active' ? 'pacman' : ws.state == 'empty' ? 'empty' : 'ghost'}.png"
+            (image :path "${EWW_CONFIG_DIR}/../../assets/icons/${ws.state == 'active' ? 'pacman' : ws.state == 'empty' ? 'empty' : 'ghost'}.png"
                    :image-width 22 :image-height 22)))))))
 
 ;; ── Grupo D: reproductor ────────────────────────────────────────────────────
@@ -125,7 +138,7 @@
     ;; Batería (solo si existe)
     (box :visible {system.battery?.present == true} :space-evenly false :spacing 6
          :tooltip "${system.battery?.status ?: ''}"
-      (label :class "sys-glyph ${system.battery?.percent < 20 && system.battery?.charging != true ? 'c-red' : 'c-green'}"
+      (label :class "sys-glyph ${(system.battery?.percent ?: 100) < 20 && system.battery?.charging != true ? 'c-red' : 'c-green'}"
              :text {system.battery?.glyph ?: ""})
       (label :class "sys-value" :text "${system.battery?.percent ?: ''}%"))
     ;; Red
@@ -143,5 +156,5 @@
           (label :class "sys-value" :text {system.user ?: ""}))))
     ;; Energía
     (eventbox :cursor "pointer"
-      (button :class "power-button" :onclick "desktopctl popup toggle power ${monitor}" :tooltip "Energía"
-        (label :text "⏻")))))
+      (button :class "power-button" :valign "center" :onclick "desktopctl popup toggle power ${monitor}" :tooltip "Energía"
+        (label :class "power-glyph" :xalign 0.5 :yalign 0.5 :justify "center" :text "󰐥")))))

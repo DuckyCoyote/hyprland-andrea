@@ -4,7 +4,7 @@
 ;; Los widgets nunca llaman a hyprctl/nmcli/wpctl para LEER estado: lo leen de aquí.
 ;; ─────────────────────────────────────────────────────────────────────────────
 
-(deflisten wm         :initial `{"workspaces":{},"monitors":[],"has_workspaces":false}` "desktop-sub wm")
+(deflisten wm         :initial `{"workspaces":{},"windows":{},"monitors":[],"has_workspaces":false}` "desktop-sub wm")
 (deflisten popup      :initial `{"open":"","monitor":"","tab":"","confirm":""}`        "desktop-sub popup")
 (deflisten appearance :initial `{"themes":[],"accents":[],"fonts":[]}`                   "desktop-sub appearance")
 (deflisten audio      :initial `{"available":false}`                                     "desktop-sub audio")
@@ -29,3 +29,4 @@
 (defvar launcher_cat "all")
 (defvar audio_tab "out")
 (defvar weather_tab "hours")
+(defvar font_picker false)

@@ -1,6 +1,8 @@
 {
   "name": "Monocromático",
   "variant": "dark",
+  "icon_palette": "mocha",
+  "nvim": { "backgrounds_only": true },
   "palette": {
     "rosewater": "#e0e0e0",
     "flamingo": "#d4d4d4",

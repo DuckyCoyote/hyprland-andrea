@@ -4,9 +4,11 @@ Los cambios se guardan en ~/.local/state/hyprland-desktop/appearance.json (persi
 reinicios), se regeneran los archivos derivados y se recargan Eww, el compositor y kitty.
 """
 import asyncio
+from pathlib import Path
 
-from .. import config, eww, render
+from .. import config, eww, paths, previews, render
 from ..daemon import Source
+from ..util import have, run
 
 INT_KEYS = {"font_size": (8, 24), "radius": (0, 24), "spacing": (2, 20), "border_width": (0, 4)}
 BOOL_KEYS = {"transparency", "shadows", "animations"}
@@ -19,10 +21,21 @@ class AppearanceSource(Source):
     def __init__(self, hub) -> None:
         super().__init__(hub)
         self.fonts: list[str] = []
+        self.walls: list[dict] = []
+        self.wall_dir = ""
+        self.cursors: list[dict] = []
 
     async def start(self) -> None:
         self.fonts = await asyncio.to_thread(render.font_families)
+        await self._scan()
         await self.apply(reload_all=False)
+
+    async def _scan(self) -> None:
+        """Relee la carpeta de fondos y los temas de cursor (genera miniaturas nuevas)."""
+        folder = await asyncio.to_thread(previews.wallpaper_dir, config.load())
+        self.wall_dir = str(folder)
+        self.walls = await asyncio.to_thread(previews.wallpapers, folder)
+        self.cursors = await asyncio.to_thread(previews.cursor_themes)
 
     def _publish(self) -> None:
         ctx = render.context()
@@ -40,6 +53,12 @@ class AppearanceSource(Source):
             "themes": themes,
             "accents": [{"name": a, "hex": ctx["pal"][a], "selected": a == ctx["accent_name"]} for a in ACCENTS if a in ctx["pal"]],
             "fonts": self.fonts or [ap.get("font_family", "")],
+            "wallpaper": render.wallpaper_path(ctx),
+            "wallpaper_dir": self.wall_dir,
+            "wallpaper_rows": _rows([{**w, "selected": w["path"] == render.wallpaper_path(ctx)} for w in self.walls], 3),
+            "cursor_theme": ap.get("cursor_theme", ""),
+            "cursor_size": int(ap.get("cursor_size", 24)),
+            "cursor_rows": _rows([{**c, "selected": c["name"] == ap.get("cursor_theme", "")} for c in self.cursors], 3),
         })
 
     async def apply(self, reload_all: bool = True) -> list:
@@ -49,10 +68,11 @@ class AppearanceSource(Source):
             return []
         render.log_changes(changed)
         if reload_all:
+            wm = self.hub.sources["wm"]
+            if any(p.name in ("theme.lua", "settings.lua") for p in changed):
+                await wm.wm.reload()
             if any(p.suffix == ".scss" for p in changed):
-                await asyncio.to_thread(eww.reload)
-            if any(p.suffix == ".lua" for p in changed):
-                await self.hub.sources["wm"].wm.reload()
+                await wm.reload_eww()
         await asyncio.to_thread(render.reload_external, ctx, changed)
         return changed
 
@@ -81,6 +101,24 @@ class AppearanceSource(Source):
             val = value
         elif key == "icon_theme":
             val = value
+        elif key == "wallpaper":
+            path = Path(value).expanduser()
+            if not path.is_file():
+                return f"no existe: {value}"
+            config.set_appearance("wallpaper", str(path))
+            self._publish()
+            await asyncio.to_thread(render.set_wallpaper)
+            return f"fondo = {path.name}"
+        elif key in ("cursor_theme", "cursor_size"):
+            if key == "cursor_theme" and value not in {c["name"] for c in self.cursors}:
+                return f"tema de cursor desconocido: {value}"
+            val = value if key == "cursor_theme" else max(16, min(64, int(float(value))))
+            if current.get(key) == val:
+                return "sin cambios"
+            config.set_appearance(key, val)
+            await self.apply()
+            await self._apply_cursor()
+            return f"{key} = {val}"
         else:
             return f"clave no soportada: {key}"
         if current.get(key) == val:
@@ -89,11 +127,44 @@ class AppearanceSource(Source):
         await self.apply()
         return f"{key} = {val}"
 
+    async def _apply_cursor(self) -> None:
+        ap = config.load().get("appearance", {})
+        theme, size = ap.get("cursor_theme", ""), int(ap.get("cursor_size", 24))
+        if not theme:
+            return
+        await self.hub.sources["wm"].wm.set_cursor(theme, size)
+        if have("gsettings"):  # aplicaciones GTK y XWayland
+            await run("gsettings", "set", "org.gnome.desktop.interface", "cursor-theme", theme)
+            await run("gsettings", "set", "org.gnome.desktop.interface", "cursor-size", str(size))
+
+    async def cmd_rescan(self) -> str:
+        await self._scan()
+        self._publish()
+        return f"{len(self.walls)} fondos en {self.wall_dir}, {len(self.cursors)} temas de cursor"
+
+    async def cmd_open_wallpaper_dir(self) -> None:
+        from ..util import spawn_detached
+        settings = config.load()
+        spawn_detached(f"{config.resolve_app(settings, '@file_manager')} '{self.wall_dir}'")
+
     async def cmd_reset(self) -> str:
         config.reset_appearance()
         await self.apply()
+        await asyncio.to_thread(render.set_wallpaper)
         return "apariencia restaurada a los valores predeterminados"
 
     async def cmd_apply(self) -> str:
         changed = await self.apply()
         return f"{len(changed)} archivos regenerados"
+
+
+def _rows(items: list, size: int) -> list:
+    """Parte una lista en filas (Eww no tiene rejilla)."""
+    rows = [items[i:i + size] for i in range(0, len(items), size)]
+    if rows:  # huecos invisibles para que la última fila no se estire (con todos los campos:
+        # Eww evalúa las expresiones aunque el widget esté oculto y un null rompe el render)
+        blank = str(paths.ASSETS_DIR / "icons" / "blank.png")
+        hole = {"placeholder": True, "selected": False, "name": "", "label": "", "path": "",
+                "thumb": blank, "preview": blank}
+        rows[-1] += [dict(hole) for _ in range(size - len(rows[-1]))]
+    return rows

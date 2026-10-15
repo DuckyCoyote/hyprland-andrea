@@ -1,0 +1,27 @@
+;; Chuleta de atajos flotante (Super+S). Es una capa centrada, no una ventana del compositor:
+;; no ocupa espacio en el mosaico y se cierra con Escape, clic fuera o Super+S de nuevo.
+;; Las columnas las calcula desktopd (system.keymap) a partir de keybinds.lua.
+
+(defwindow keymap
+  :geometry (geometry :x "0" :y "0" :width "1500px" :anchor "center")
+  :stacking "overlay"
+  :focusable false
+  :namespace "hd-popup"
+  (popup-frame :name "keymap-popup"
+    (box :class "keymap-header" :space-evenly false :spacing 12
+      (label :class "keymap-icon c-accent" :text "󰌌")
+      (box :orientation "v" :space-evenly false :hexpand true :valign "center"
+        (label :class "panel-title" :halign "start" :text "Atajos de teclado")
+        (label :class "dim" :halign "start" :text "Super = tecla Windows · Escape o clic fuera para cerrar"))
+      (close-button))
+    (box :class "keymap-columns" :spacing 18 :homogeneous true
+      (for column in {system.keymap ?: []}
+        (box :orientation "v" :space-evenly false :spacing 14 :valign "start"
+          (for section in column
+            (box :class "keymap-section" :orientation "v" :space-evenly false
+              (label :class "keymap-section-title" :halign "start" :text {section.title})
+              (for k in {section.items}
+                (box :class "keymap-row" :space-evenly false :spacing 10
+                  (label :class "keymap-desc" :halign "start" :hexpand true :xalign 0
+                         :limit-width 34 :text {k.desc})
+                  (label :class "key-combo" :halign "end" :text {k.keys}))))))))))

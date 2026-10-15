@@ -1,5 +1,6 @@
 """Tema `wm`: monitores, espacios de trabajo por monitor y gestión de las barras."""
 import asyncio
+import time
 
 from .. import config, eww
 from ..daemon import Source
@@ -19,6 +20,10 @@ class WmSource(Source):
         self.wm = detect(config.load().get("wm", "auto"))
         self.monitors: list[dict] = []
         self.bars: set[str] = set()
+        self._icon_names: dict[str, str] | None = None
+        self._icons = None
+        self._icon_cache: dict[str, str] = {}
+        self._last_restart = 0.0
         self._refresh = Debouncer(0.03, self.refresh)
         self._monitors_changed = Debouncer(0.5, self.sync_bars)
 
@@ -27,7 +32,32 @@ class WmSource(Source):
         await self.refresh()
         await asyncio.to_thread(eww.start_daemon)
         await self.sync_bars()
+        asyncio.create_task(self._watchdog())
         await self.wm.start(self.on_change)
+
+    async def _watchdog(self) -> None:
+        """Si Eww deja de responder, lo reinicia: un Eww colgado deja la capa de cierre de los
+        popups cubriendo la pantalla y el teclado en modo popup («pantalla pegada»)."""
+        failures = 0
+        while True:
+            await asyncio.sleep(5)
+            if self.hub.eww_lock.locked():  # recarga en curso: es normal que tarde
+                continue
+            alive = await asyncio.to_thread(eww.running)
+            failures = 0 if alive else failures + 1
+            if failures < 2:
+                continue
+            failures = 0
+            log("Eww no responde: reiniciándolo")
+            popup = self.hub.sources["popup"]
+            await popup.reset()  # libera el teclado sin esperar a Eww
+            async with self.hub.eww_lock:
+                await asyncio.to_thread(eww.restart_daemon)
+                for _ in range(30):
+                    if not await self.wm.count_layers("hd-bar"):
+                        break
+                    await asyncio.sleep(0.1)
+                await self._sync_bars(retry=False)
 
     async def on_change(self, kind: str) -> None:
         self._refresh()
@@ -69,13 +99,40 @@ class WmSource(Source):
             mon["index"] = index
             result[mon["name"]] = items
 
+        active = await self.wm.active_windows()
+        windows = {}
+        for mon in self.monitors:
+            win = active.get(mon["name"]) or {}
+            cls = win.get("class", "")
+            windows[mon["name"]] = {"class": cls, "title": win.get("title", ""),
+                                    "icon": await self.window_icon(cls) if cls else ""}
+
         self.publish({
             "wm": self.wm.name,
+            "windows": windows,
             "has_workspaces": self.wm.has_workspaces,
             "focused": next((m["name"] for m in self.monitors if m["focused"]), ""),
             "monitors": self.monitors,
             "workspaces": result,
         })
+
+    async def window_icon(self, cls: str) -> str:
+        """Ruta del icono de una clase de ventana (resuelto una vez y guardado en caché)."""
+        key = cls.lower()
+        if key not in self._icon_cache:
+            def resolve() -> str:
+                from .apps import IconResolver, window_icon_names
+                if self._icon_names is None:
+                    self._icon_names = window_icon_names()
+                    self._icons = IconResolver()
+                candidates = [self._icon_names.get(key), self._icon_names.get(key.rsplit(".", 1)[-1]), key]
+                for name in filter(None, candidates):
+                    found = self._icons.lookup(name, 32)
+                    if found and "application-x-executable" not in found:
+                        return found
+                return ""
+            self._icon_cache[key] = await asyncio.to_thread(resolve)
+        return self._icon_cache[key]
 
     def screen_of(self, monitor: str | None):
         for m in self.monitors:
@@ -85,6 +142,10 @@ class WmSource(Source):
 
     async def sync_bars(self) -> None:
         """Abre una barra por monitor conectado y cierra las de monitores desaparecidos."""
+        async with self.hub.eww_lock:  # nunca a la vez que una recarga de Eww
+            await self._sync_bars()
+
+    async def _sync_bars(self, retry: bool = True) -> None:
         await self.refresh()
         bar = config.load().get("bar", {})
         default_modules = bar.get("modules", [])
@@ -93,7 +154,12 @@ class WmSource(Source):
             modules = bar.get("per_monitor", {}).get(m["name"], default_modules)
             wanted[f"bar-{m['name']}"] = (m, "," + ",".join(modules) + ",")
 
-        active = await asyncio.to_thread(eww.active_windows)
+        active = await asyncio.to_thread(eww.active_windows_or_none)
+        if active is None:  # Eww ocupado: reintentar en lugar de abrir barras a ciegas
+            if retry:
+                await asyncio.sleep(1)
+                await self._sync_bars(retry=False)
+            return
         current = {wid for wid, name in active.items() if name == "bar"}
         stale = current - set(wanted)
         if stale:
@@ -103,6 +169,43 @@ class WmSource(Source):
                 await asyncio.to_thread(eww.open_window, "bar", wid, mon["screen"],
                                         {"monitor": mon["name"], "modules": modules})
         self.bars = set(wanted)
+
+        # Red de seguridad: si Eww dejó barras huérfanas (superficies que ya no controla), solo
+        # reiniciarlo las elimina. Se comprueba dos veces (las superficies de una recarga tardan
+        # un instante en desaparecer) y como mucho una vez por minuto, para no entrar en bucle.
+        if retry and await self._too_many_bars(len(wanted)):
+            await asyncio.sleep(2)
+            if await self._too_many_bars(len(wanted)) and time.monotonic() - self._last_restart > 60:
+                self._last_restart = time.monotonic()
+                log("barras huérfanas de Eww: reiniciando Eww")
+                await asyncio.to_thread(eww.restart_daemon)
+                for _ in range(30):  # esperar a que el compositor retire las superficies viejas
+                    if not await self.wm.count_layers("hd-bar"):
+                        break
+                    await asyncio.sleep(0.1)
+                await self._sync_bars(retry=False)
+                await self.hub.sources["popup"].reopen()
+
+    async def _too_many_bars(self, expected: int) -> bool:
+        layers = await self.wm.count_layers("hd-bar")
+        return layers is not None and layers > expected
+
+    async def reload_eww(self) -> None:
+        """Recarga Eww (tras regenerar estilos) y restablece barras y popup abierto."""
+        # Con ventanas abiertas, `eww reload` las recrea en segundo plano y abrir otra a la vez
+        # bloquea Eww: se cierran todas, se recarga sin ventanas y se vuelven a abrir.
+        async with self.hub.eww_lock:
+            await asyncio.to_thread(eww.close_all)
+            await asyncio.to_thread(eww.reload)
+            for _ in range(50):
+                if await asyncio.to_thread(eww.running):
+                    break
+                await asyncio.sleep(0.1)
+            else:
+                log("Eww no respondió tras recargar: reiniciando Eww")
+                await asyncio.to_thread(eww.restart_daemon)
+            await self._sync_bars()
+        await self.hub.sources["popup"].reopen()
 
     # ---- órdenes -------------------------------------------------------------
     async def cmd_focus(self, workspace_id: str) -> None:

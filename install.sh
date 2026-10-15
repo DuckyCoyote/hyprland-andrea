@@ -182,6 +182,18 @@ else
     ok "Creado $KITTY_CONF"
 fi
 
+# Neovim: si usa monokai-pro, se añade un plugin (enlace) que sincroniza su paleta con el tema
+NVIM_SPEC="$CONFIG_HOME/nvim/lua/plugins/hyprland-desktop.lua"
+if [[ -L "$NVIM_SPEC" ]]; then
+    ok "Neovim ya sincroniza el tema"
+elif [[ -d "$CONFIG_HOME/nvim/lua/plugins" ]] && grep -rqs "monokai-pro" "$CONFIG_HOME/nvim"; then
+    if ask "¿Sincronizar el tema de Neovim (monokai-pro) con el tema global?"; then
+        run ln -s "$ROOT/config/nvim/hyprland-desktop.lua" "$NVIM_SPEC"
+        record "link" "$NVIM_SPEC" "$ROOT/config/nvim/hyprland-desktop.lua"
+        ok "Neovim seguirá el tema global (desactivable con nvim.sync_theme)"
+    fi
+fi
+
 # Configuración de usuario editable (nunca se sobrescribe)
 USER_SETTINGS="$CONFIG_HOME/hyprland-desktop/settings.json"
 if [[ -f "$USER_SETTINGS" ]]; then

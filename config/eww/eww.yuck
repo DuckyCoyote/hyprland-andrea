@@ -19,3 +19,4 @@
 (include "./widgets/weather/weather.yuck")
 (include "./widgets/calendar/calendar.yuck")
 (include "./widgets/notifications/notifications.yuck")
+(include "./widgets/keymap/keymap.yuck")

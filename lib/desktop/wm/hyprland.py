@@ -15,7 +15,7 @@ from .base import OnChange, WindowManager
 _WS_EVENTS = {"workspacev2", "createworkspacev2", "destroyworkspacev2", "moveworkspacev2",
               "openwindow", "closewindow", "movewindowv2", "renameworkspace", "activespecialv2"}
 _MON_EVENTS = {"monitoraddedv2", "monitorremovedv2", "monitoradded", "monitorremoved", "configreloaded"}
-_FOCUS_EVENTS = {"focusedmonv2"}
+_FOCUS_EVENTS = {"focusedmonv2", "activewindowv2", "windowtitlev2"}
 
 
 class Hyprland(WindowManager):
@@ -63,8 +63,12 @@ class Hyprland(WindowManager):
 
     async def start(self, on_change: OnChange) -> None:
         while True:
+            writer = None
             try:
-                reader, _ = await asyncio.open_unix_connection(self.sock2, limit=1 << 20)
+                # Hay que conservar `writer`: en Python >= 3.11 su recolección cierra el socket y
+                # se pierden los eventos hasta reconectar (la barra se quedaba atrasada).
+                reader, writer = await asyncio.open_unix_connection(self.sock2, limit=1 << 20)
+                await on_change("workspaces")  # estado fresco tras (re)conectar
                 while line := await reader.readline():
                     event, _, data = line.decode(errors="replace").strip().partition(">>")
                     if event == "urgent":
@@ -80,7 +84,10 @@ class Hyprland(WindowManager):
                         await on_change("focus")
             except OSError as e:
                 debug(f"hyprland socket2: {e}")
-            await asyncio.sleep(2)
+            finally:
+                if writer:
+                    writer.close()
+            await asyncio.sleep(0.5)
 
     async def _mark_urgent(self, address: str) -> None:
         for c in await self.query("clients"):
@@ -117,12 +124,35 @@ class Hyprland(WindowManager):
                         "windows": w.get("windows", 0), "urgent": w["id"] in self.urgent})
         return out
 
+    async def active_windows(self) -> dict[str, dict]:
+        visible = {m.get("activeWorkspace", {}).get("id"): m["name"] for m in await self.query("monitors")}
+        best: dict[str, dict] = {}
+        for c in await self.query("clients"):
+            mon = visible.get(c.get("workspace", {}).get("id"))
+            if mon is None or not c.get("mapped", True) or c.get("hidden"):
+                continue
+            # focusHistoryID: 0 = ventana enfocada; menor = usada más recientemente
+            if mon not in best or c.get("focusHistoryID", 1 << 30) < best[mon].get("focusHistoryID", 1 << 30):
+                best[mon] = c
+        return {mon: {"class": c.get("class") or c.get("initialClass", ""), "title": c.get("title", "")}
+                for mon, c in best.items()}
+
     async def focus_workspace(self, workspace_id: int) -> None:
         await self.dispatch(f"hl.dsp.focus({{ workspace = {int(workspace_id)} }})", f"workspace {int(workspace_id)}")
 
     async def popup_mode(self, enabled: bool) -> None:
         submap = "hd-popup" if enabled else "reset"
         await self.dispatch(f'hl.dsp.submap("{submap}")', f"submap {submap}")
+
+    async def count_layers(self, namespace: str) -> int | None:
+        layers = await self.query("layers")
+        if not isinstance(layers, dict):
+            return None
+        return sum(1 for mon in layers.values() for level in mon.get("levels", {}).values()
+                   for layer in level if layer.get("namespace") == namespace)
+
+    async def set_cursor(self, theme: str, size: int) -> None:
+        await self.request(f"/setcursor {theme} {int(size)}")
 
     async def reload(self) -> None:
         await self.request("/reload")

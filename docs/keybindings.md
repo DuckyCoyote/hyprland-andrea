@@ -15,7 +15,7 @@ Origen: `keys/globalkeys.lua` y `keys/clientkeys.lua` de
 | Super+E | Explorador de archivos | *nuevo* |
 | Super+R / Super+P / Super+Shift+D | Lanzador | prompt / menubar / rofi combi |
 | Super+W | Configuración | menú principal |
-| Super+S | Lista de atajos | hotkeys_popup |
+| Super+S | Chuleta de atajos flotante (capa centrada, agrupada por secciones) | hotkeys_popup |
 | Super+Shift+T | Selector de temas y fuentes | *nuevo* |
 | Super+Shift+Q | Menú de energía (con confirmación) | salir de awesome (inmediato) |
 | Super+Ctrl+R | Recargar Hyprland y Eww | awesome.restart |

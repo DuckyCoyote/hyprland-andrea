@@ -3,13 +3,14 @@
 Es el ÚNICO lugar donde los tokens de diseño se traducen a la sintaxis de cada programa.
 Ningún archivo escrito a mano contiene colores, fuentes ni tamaños.
 
-  config/eww/styles/tokens/_generated.scss   tokens crudos para Eww
+  ~/.cache/hyprland-desktop/eww/_generated.scss  tokens crudos para Eww (enlazado en config/eww/styles/tokens/)
   config/hypr/generated/theme.lua            colores/bordes/sombras para Hyprland
   config/hypr/generated/settings.lua         monitores, apps, teclado... para Hyprland
   config/hypr/hyprlock.conf, hypridle.conf   (formato hyprlang)
   config/kitty/theme.conf                    terminal (incluido desde kitty.conf)
 """
 import json
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -31,7 +32,9 @@ def context() -> dict:
     theme = themes.get(theme_id) or next(iter(themes.values()))
     pal = theme["palette"]
     accent_name = ap.get("accent", "mauve") if ap.get("accent") in pal else "mauve"
-    return {"settings": settings, "ap": ap, "theme_id": theme_id, "theme": theme, "pal": pal,
+    # Un tema puede tomar los colores de los iconos de otro (el monocromo conserva los de Mocha)
+    icon_pal = themes.get(theme.get("icon_palette", ""), {}).get("palette", pal)
+    return {"settings": settings, "ap": ap, "theme_id": theme_id, "theme": theme, "pal": pal, "icon_pal": icon_pal,
             "accent": pal[accent_name], "accent_name": accent_name, "dark": theme.get("variant", "dark") != "light"}
 
 
@@ -46,6 +49,7 @@ def eww_scss(ctx: dict) -> str:
     opacity = float(ap.get("opacity", 0.92)) if _bool(ap.get("transparency", False)) else 1.0
     lines = [f"// {HEADER}", f"// Tema: {ctx['theme']['name']}", ""]
     lines += [f"${k}: {v};" for k, v in pal.items()]
+    lines += [""] + [f"$icon-{k}: {v};" for k, v in ctx["icon_pal"].items()]
     lines += [
         "",
         f"$accent: {ctx['accent']};",
@@ -108,6 +112,8 @@ def hypr_theme(ctx: dict) -> str:
         "inactive_opacity": round(min(1.0, opacity + 0.03), 2),
         "active_opacity": 1.0,
         "font": ap.get("font_family", "JetBrainsMono Nerd Font"),
+        "cursor_theme": ap.get("cursor_theme", ""),
+        "cursor_size": int(ap.get("cursor_size", 24)),
     }
     return f"-- {HEADER}\nreturn {_lua(data)}\n"
 
@@ -116,7 +122,7 @@ def hypr_settings(ctx: dict) -> str:
     s = ctx["settings"]
     data = {
         "ctl": str(paths.CTL),
-        "apps": s.get("apps", {}),
+        "apps": {k: config.app_command(s, k) for k in s.get("apps", {})},
         "monitors": s.get("monitors", []),
         "workspaces_per_monitor": int(s.get("workspaces", {}).get("per_monitor", 6)),
         "keyboard": s.get("keyboard", {}),
@@ -222,27 +228,99 @@ def kitty(ctx: dict) -> str:
              f"selection_foreground {p['base']}", f"selection_background {p['rosewater']}",
              f"cursor {p['rosewater']}", f"cursor_text_color {p['base']}",
              f"url_color {p['rosewater']}", f"active_border_color {ctx['accent']}", f"inactive_border_color {p['overlay0']}",
-             f"active_tab_foreground {p['crust']}", f"active_tab_background {ctx['accent']}",
-             f"inactive_tab_foreground {p['text']}", f"inactive_tab_background {p['mantle']}",
-             f"tab_bar_background {p['crust']}"]
+             # Pestañas: arriba y minimalistas, cada una es una píldora redondeada con número y
+             # nombre, con los colores del tema global (activa = acento, inactivas = superficie).
+             "tab_bar_edge top", "tab_bar_style separator", 'tab_separator " "',
+             "tab_bar_margin_width 6", "tab_bar_margin_height 4 2",
+             f"tab_bar_background {p['base']}", f"tab_bar_margin_color {p['base']}",
+             f"active_tab_background {p['base']}", f"inactive_tab_background {p['base']}",
+             "active_tab_font_style bold", "inactive_tab_font_style normal",
+             "tab_title_template " + _pill(p["surface0"], p["subtext1"], p["surface2"], p["text"]),
+             # círculo del número activo: el acento aclarado (u oscurecido en temas claros)
+             "active_tab_title_template " + _pill(ctx["accent"], p["crust"],
+                                                  _mix(ctx["accent"], "#ffffff" if dark else "#000000", 0.45),
+                                                  p["crust"]),
+             "map ctrl+shift+t new_tab_with_cwd", "map ctrl+shift+enter new_window_with_cwd"]
     lines += [f"color{i} {v}" for i, v in enumerate(c)]
+    shell = ctx["settings"].get("apps", {}).get("shell", "")
+    if shell:
+        lines.append(f"shell {shutil.which(shell) or shell}")
     return "\n".join(lines) + "\n"
+
+
+TAB_TITLE_MAX = 22
+
+
+def _mix(c1: str, c2: str, weight: float) -> str:
+    """Mezcla dos colores #rrggbb; `weight` es la proporción del segundo."""
+    a, b = (tuple(int(c.lstrip("#")[i:i + 2], 16) for i in (0, 2, 4)) for c in (c1, c2))
+    return "#" + "".join(f"{round(x + (y - x) * weight):02x}" for x, y in zip(a, b))
+
+
+def _pill(bg: str, fg: str, num_bg: str, num_fg: str) -> str:
+    """Plantilla de título de kitty: píldora redondeada con el número dentro de un círculo de
+    color contrastado y después el nombre:  (N) nombre  (extremos con glifos Nerd Font).
+
+    El título se recorta dentro de la píldora (kitty evalúa la plantilla como una f-string de
+    Python); tab_title_max_length pondría el «…» fuera, después del cierre redondeado."""
+    def c(color: str) -> str:
+        return "_" + color.lstrip("#")
+    left, right = "\ue0b6", "\ue0b4"
+    n = TAB_TITLE_MAX
+    title = "{title if len(title) <= %d else title[:%d] + '…'}" % (n, n - 1)
+    number = ("{fmt.fg.%s}{fmt.bg.tab}%s{fmt.fg.%s}{fmt.bg.%s}{index}{fmt.fg.%s}{fmt.bg.%s}%s"
+              % (c(num_bg), left, c(num_fg), c(num_bg), c(num_bg), c(bg), right))
+    return ('"%s{fmt.fg.%s}{fmt.bg.%s} %s {fmt.fg.%s}{fmt.bg.tab}%s"'
+            % (number, c(fg), c(bg), title, c(bg), right))
+
+
+# --------------------------------------------------------------------------- Neovim
+def nvim_palette(ctx: dict) -> str:
+    """Paleta para monokai-pro (override_palette) con el mismo reparto de colores que la
+    configuración de Neovim del usuario y el fondo idéntico al de kitty."""
+    p = ctx["pal"]
+    sync = ctx["settings"].get("nvim", {}).get("sync_theme", True)
+    palette = {
+        "dark2": p["crust"], "dark1": p["mantle"], "background": p["base"], "text": p["text"],
+        "accent1": p["red"], "accent2": p["blue"], "accent3": p["yellow"], "accent4": p["green"],
+        "accent5": p["sky"], "accent6": p["mauve"],
+        "dimmed1": p["overlay1"], "dimmed2": p["overlay2"], "dimmed3": p["surface1"],
+        "dimmed4": p["surface1"], "dimmed5": p["mantle"],
+    }
+    # Un tema con "nvim": {"backgrounds_only": true} (el monocromo) solo cambia los fondos del
+    # editor y del explorador; el resto de colores son los de la configuración original de Neovim.
+    if ctx["theme"].get("nvim", {}).get("backgrounds_only"):
+        palette = {k: palette[k] for k in ("dark2", "dark1", "background", "dimmed5")}
+    return f"-- {HEADER}\nreturn {_lua({'enabled': bool(sync), 'theme': ctx['theme_id'], 'dark': ctx['dark'], 'palette': palette})}\n"
 
 
 # --------------------------------------------------------------------------- aplicar
 def targets(ctx: dict) -> dict[Path, str]:
     return {
-        paths.EWW_DIR / "styles/tokens/_generated.scss": eww_scss(ctx),
+        # Fuera de la carpeta de Eww (enlazado desde styles/tokens/_generated.scss): Eww recarga
+        # solo al detectar cambios en su carpeta, y esa recarga se solapaba con la del daemon.
+        paths.CACHE_DIR / "eww/_generated.scss": eww_scss(ctx),
         paths.HYPR_DIR / "generated/theme.lua": hypr_theme(ctx),
         paths.HYPR_DIR / "generated/settings.lua": hypr_settings(ctx),
         paths.HYPR_DIR / "hyprlock.conf": hyprlock(ctx),
         paths.HYPR_DIR / "hypridle.conf": hypridle(ctx),
         paths.KITTY_DIR / "theme.conf": kitty(ctx),
+        paths.ROOT / "config/nvim/lua/hyprland_desktop/palette.lua": nvim_palette(ctx),
     }
+
+
+def _link_eww_tokens() -> None:
+    link = paths.EWW_DIR / "styles/tokens/_generated.scss"
+    target = paths.CACHE_DIR / "eww/_generated.scss"
+    if link.is_symlink() and link.resolve() == target:
+        return
+    link.unlink(missing_ok=True)
+    link.symlink_to(target)
 
 
 def write_all() -> tuple[dict, list[Path]]:
     """Escribe solo los archivos cuyo contenido cambió. Devuelve (contexto, cambiados)."""
+    _link_eww_tokens()
     ctx = context()
     changed = []
     for path, content in targets(ctx).items():
@@ -277,11 +355,16 @@ def reload_external(ctx: dict, changed: list[Path]) -> None:
     set_wallpaper(ctx)
 
 
+def wallpaper_path(ctx: dict) -> str:
+    """Fondo elegido en el selector (appearance.json) o, si no, el de settings.json."""
+    return ctx["ap"].get("wallpaper") or ctx["settings"].get("wallpaper", "")
+
+
 def set_wallpaper(ctx: dict | None = None) -> None:
     ctx = ctx or context()
     if not have("awww"):
         return
-    wall = ctx["settings"].get("wallpaper", "")
+    wall = wallpaper_path(ctx)
     if wall and Path(wall).expanduser().is_file():
         _quiet("awww", "img", str(Path(wall).expanduser()), "--transition-type", "fade", "--transition-duration", "0.6")
     else:
@@ -304,4 +387,5 @@ def font_families() -> list[str]:
 
 def log_changes(changed: list[Path]) -> None:
     for p in changed:
-        log(f"actualizado: {p.relative_to(paths.ROOT)}")
+        shown = p.relative_to(paths.ROOT) if p.is_relative_to(paths.ROOT) else str(p).replace(str(Path.home()), "~", 1)
+        log(f"actualizado: {shown}")

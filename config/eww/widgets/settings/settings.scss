@@ -62,3 +62,49 @@ progress.meter, .meter {
     font-weight: bold;
   }
 }
+
+// Selector de fuente
+.font-picker {
+  padding: 6px 12px;
+  border-radius: $radius-sm;
+  background-color: $bg-sunken;
+  border: $border-width solid $border;
+  .font-current { color: $fg; }
+  .glyph { color: $fg-dim; }
+  &:hover { border-color: $accent; }
+}
+.font-list {
+  border-radius: $radius-sm;
+  background-color: $bg-sunken;
+  border: $border-width solid $border;
+}
+.font-option {
+  padding: 6px 12px;
+  label { color: $fg; }
+  &:hover { background-color: $hover; }
+  &.selected { background-color: rgba($accent, 0.2); label { color: $accent; font-weight: bold; } }
+}
+// Fondos y cursores
+.wall-card, .cursor-card {
+  padding: 4px;
+  border-radius: $radius;
+  border: 2px solid transparent;
+  @include transition(background-color, border-color);
+  &:hover { background-color: $hover; }
+  &.selected { border-color: $accent; background-color: rgba($accent, 0.1); }
+}
+.wall-thumb {
+  min-height: 92px;
+  border-radius: $radius-sm;
+  background-size: cover;
+  background-position: center;
+  background-color: $surface0;
+}
+.cursor-card {
+  padding: 8px 10px;
+  background-color: $bg-alt;
+  border-color: $border;
+  border-width: $border-width;
+  .cursor-name { font-size: $font-sm; }
+  &.selected { border-width: 2px; }
+}

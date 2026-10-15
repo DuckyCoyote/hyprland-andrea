@@ -18,6 +18,16 @@
 // Grupo A
 .launcher-group { padding: 6px 9px; }
 .quick-item .glyph { font-size: $glyph-size + 2px; }
+.bar-separator {
+  min-width: 2px;
+  margin: 2px 0;
+  border-radius: $radius-pill;
+  background-color: $border-strong;
+}
+.focused-window {
+  .glyph { font-size: $glyph-size; color: $fg-dim; }
+  &.none .glyph { color: $fg-muted; }
+}
 
 // Grupo B
 .clock-time { font-size: $font-size - 1px; font-weight: bold; }
@@ -60,15 +70,24 @@
 
 // Grupo E
 .system-group {
-  .sys-glyph { font-size: $glyph-size + 1px; }
+  // los glifos Nerd Font son más anchos que su avance: el relleno evita que GTK los recorte
+  // tamaño propio con mínimo: no deben encogerse al bajar la fuente del texto
+  .sys-glyph { font-size: max($glyph-size + 5px, 21px); padding: 0 5px 0 1px; }
   .sys-glyph.busy { color: $overlay1; }
   .sys-value { font-weight: bold; font-size: $font-size - 1px; }
 }
+// Botón de energía: círculo perfecto con el glifo centrado
 .power-button {
-  min-width: 24px;
-  min-height: 24px;
-  border-radius: $radius-pill;
+  min-width: 30px;
+  min-height: 30px;
+  padding: 0;
+  margin: 0;
+  border-radius: 50%;
   background-color: rgba($red, 0.2);
-  label { color: $red; font-size: $font-size + 1px; }
-  &:hover { background-color: $red; label { color: $on-accent; } }
+  .power-glyph {
+    color: $icon-red;
+    font-size: $font-size + 5px;
+    padding: 0;
+  }
+  &:hover { background-color: $icon-red; .power-glyph { color: $on-accent; } }
 }

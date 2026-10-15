@@ -35,6 +35,10 @@ class WindowManager:
         """[{id, name, monitor, windows, urgent}]"""
         return []
 
+    async def active_windows(self) -> dict[str, dict]:
+        """{monitor: {class, title}}: ventana enfocada en el espacio visible de cada monitor."""
+        return {}
+
     async def focused_monitor(self) -> str | None:
         for m in await self.monitors():
             if m["focused"]:
@@ -46,6 +50,13 @@ class WindowManager:
 
     async def popup_mode(self, enabled: bool) -> None:
         """Activa/desactiva un modo de teclado en el que Escape cierra los popups."""
+
+    async def count_layers(self, namespace: str) -> int | None:
+        """Número de superficies layer-shell con ese namespace (None si no se puede saber)."""
+        return None
+
+    async def set_cursor(self, theme: str, size: int) -> None:
+        """Cambia el tema de cursor en caliente (si el compositor lo permite)."""
 
     async def reload(self) -> None:
         """Recarga la configuración del compositor (tras cambiar de tema)."""

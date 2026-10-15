@@ -26,6 +26,9 @@ tocar el repositorio, en `~/.config/hyprland-desktop/themes/`:
 ```
 
 - `variant`: `dark` o `light` (ajusta la preferencia de GTK y la paleta ANSI de kitty).
+- `icon_palette` (opcional): id de otro tema del que tomar los colores de los iconos (clases
+  `.c-*`: campana, micrófono, actualizaciones…). El tema monocromo usa `"mocha"` para que los
+  iconos conserven su color.
 - `base`/`mantle`/`crust`: fondos de mayor a menor luminosidad (en temas claros, al revés que
   el texto). `surface*`: tarjetas y bordes. `overlay*`/`subtext*`: textos secundarios.
 - Los 14 colores con nombre se ofrecen como acentos en el selector.
@@ -38,10 +41,25 @@ Aparece automáticamente en el selector. Para activarlo: `desktopctl appearance 
 
 | Destino | Archivo generado |
 |---|---|
-| Eww | `config/eww/styles/tokens/_generated.scss` |
+| Eww | `~/.cache/hyprland-desktop/eww/_generated.scss` (enlace en `config/eww/styles/tokens/`; fuera de la carpeta de Eww para que solo el daemon decida cuándo recargar) |
 | Hyprland | `config/hypr/generated/theme.lua` |
 | hyprlock | `config/hypr/hyprlock.conf` |
 | kitty | `config/kitty/theme.conf` |
 
 Para soportar otro programa (p. ej. rofi o GTK), añade una función a `render.py` y su ruta en
 `targets()`.
+
+## Kitty y Neovim
+
+- **kitty** (`config/kitty/theme.conf`, generado): colores del tema y pestañas arriba,
+  minimalistas (una píldora redondeada con número y nombre; activa en rojo, inactivas en verde
+  como en awesome-minimal; `ctrl+shift+t` /
+  `ctrl+shift+enter` abren pestaña/ventana en el directorio actual).
+- **Neovim**: `config/nvim/lua/hyprland_desktop/palette.lua` (generado) contiene una paleta para
+  monokai-pro con el mismo reparto de colores que la configuración original del usuario y el
+  fondo idéntico al de kitty. El plugin `config/nvim/hyprland-desktop.lua` (enlazado en
+  `~/.config/nvim/lua/plugins/`) solo sustituye `override_palette`: las cursivas y demás ajustes se
+  conservan, y las instancias abiertas cambian de tema al momento. Un tema con
+  `"nvim": { "backgrounds_only": true }` (el monocromo) solo cambia los fondos del editor y del
+  explorador y mantiene los colores originales de Neovim. Con
+  `"nvim": { "sync_theme": false }` Neovim vuelve a su tema original.

@@ -9,10 +9,12 @@ desktopctl apply
 
 | Sección | Qué controla |
 |---|---|
-| `apps` | terminal, navegador, explorador, editor (los usan atajos y accesos `@terminal`…) |
+| `apps` | terminal, navegador, explorador, editor (los usan atajos y accesos `@terminal`…); `shell`: intérprete con el que abre kitty (por defecto `fish`); `browser: "default"` usa el navegador predeterminado del sistema (`xdg-settings`) |
 | `quick_launch` | accesos rápidos de la barra (orden, icono, comando, tooltip) |
 | `monitors` | salida, modo, posición, escala, `primary` |
-| `bar.modules` / `bar.per_monitor` | qué grupos muestra la barra y en qué monitor |
+| `wallpaper` / `wallpaper_dir` | fondo inicial y carpeta que lee el selector de fondos (vacío = `~/Imágenes/Wallpapers`). El fondo y el cursor elegidos en Configuración → Apariencia se guardan en `appearance.json` y persisten entre sesiones |
+| `nvim.sync_theme` | Neovim (monokai-pro) sigue el tema global con el fondo de kitty; `false` = tema original de Neovim |
+| `bar.modules` / `bar.per_monitor` | qué grupos muestra la barra y en qué monitor (`window` = icono de la ventana enfocada, junto a los accesos rápidos tras un separador) |
 | `workspaces.per_monitor` | número de espacios visibles por monitor |
 | `keyboard`, `input` | distribución, variante, sensibilidad, desplazamiento natural |
 | `weather` | ciudad y coordenadas (sin geolocalización), unidades, frecuencia |
