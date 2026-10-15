@@ -94,6 +94,7 @@ local binds = {
     { M .. " + CTRL + K",      "Enfocar monitor anterior",               dsp.focus({ monitor = "-1" }) },
     { M .. " + U",             "Ir a la ventana urgente",                dsp.focus({ urgent_or_last = true }) },
     { M .. " + Tab",           "Ventana enfocada anteriormente",         dsp.focus({ last = true }) },
+    { "ALT + Tab",             "Selector de ventanas abiertas",          ctl("switcher open focused") },
     { M .. " + ALT + left",    "Enfocar a la izquierda",                 dsp.focus({ direction = "left" }) },
     { M .. " + ALT + right",   "Enfocar a la derecha",                   dsp.focus({ direction = "right" }) },
     { M .. " + ALT + up",      "Enfocar arriba",                         dsp.focus({ direction = "up" }) },
@@ -186,6 +187,27 @@ hl.define_submap("hd-popup", function()
         hl.exec_cmd(ctx.ctl("popup close"))
         hl.dispatch(dsp.submap("reset"))
     end)
+end)
+
+-- Modo «switcher» (selector de ventanas, Alt+Tab): lo activa desktopd al abrirlo.
+hl.define_submap("hd-switcher", function()
+    local function close()
+        hl.exec_cmd(ctx.ctl("popup close"))
+        hl.dispatch(dsp.submap("reset"))
+    end
+    for _, key in ipairs({ "Tab", "ALT + Tab", "Down", "Right" }) do
+        hl.bind(key, exec(ctx.ctl("switcher next")), { repeating = true })
+    end
+    for _, key in ipairs({ "SHIFT + Tab", "ALT + SHIFT + Tab", "Up", "Left" }) do
+        hl.bind(key, exec(ctx.ctl("switcher prev")), { repeating = true })
+    end
+    for _, key in ipairs({ "Return", "KP_Enter", "space" }) do
+        hl.bind(key, function()
+            hl.exec_cmd(ctx.ctl("switcher select"))
+            hl.dispatch(dsp.submap("reset"))
+        end)
+    end
+    hl.bind("Escape", close)
 end)
 
 local runtime = (os.getenv("XDG_RUNTIME_DIR") or "/tmp") .. "/hyprland-desktop"

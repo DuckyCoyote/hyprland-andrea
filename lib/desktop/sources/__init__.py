@@ -10,6 +10,7 @@ def all_sources():
     from .network import NetworkSource
     from .notifications import NotificationsSource
     from .popup import PopupSource
+    from .switcher import SwitcherSource
     from .system import SystemSource
     from .updates import UpdatesSource
     from .weather import WeatherSource
@@ -17,4 +18,4 @@ def all_sources():
 
     # wm primero: el resto (popups, energía) depende del adaptador del compositor
     return [WmSource, PopupSource, AppearanceSource, AudioSource, NetworkSource, MediaSource,
-            UpdatesSource, WeatherSource, SystemSource, AppsSource, NotificationsSource]
+            UpdatesSource, WeatherSource, SystemSource, AppsSource, NotificationsSource, SwitcherSource]

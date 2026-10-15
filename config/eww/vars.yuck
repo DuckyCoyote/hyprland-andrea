@@ -14,6 +14,7 @@
 (deflisten weather    :initial `{"available":false}`                                     "desktop-sub weather")
 (deflisten system     :initial `{"battery":{"present":false},"services":[]}`             "desktop-sub system")
 (deflisten notifications :initial `{"toasts":[],"history":[],"count":0,"dnd":false}` "desktop-sub notifications")
+(deflisten switcher   :initial `{"items":[],"index":0}`                                  "desktop-sub switcher")
 (deflisten apps       :initial `{"apps":[],"categories":[]}`                             "desktop-sub apps")
 
 ;; Reloj: una sola consulta por minuto (formato en el idioma del sistema)

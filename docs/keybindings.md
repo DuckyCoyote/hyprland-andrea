@@ -46,6 +46,7 @@ Origen: `keys/globalkeys.lua` y `keys/clientkeys.lua` de
 | Super+Alt+flechas | Enfocar por dirección |
 | Super+U | Ir a la ventana urgente |
 | Super+Tab | Ventana anterior |
+| Alt+Tab | Selector de ventanas abiertas (centrado): Tab/flechas cambian, Shift+Tab retrocede, Enter enfoca la ventana en su monitor y escritorio (trae las minimizadas), Esc cierra |
 | Super+F | Pantalla completa |
 | Super+M | Maximizar |
 | Super+Shift+C | Cerrar |

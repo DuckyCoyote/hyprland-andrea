@@ -1,0 +1,27 @@
+// Selector de ventanas (Alt+Tab)
+.switcher-popup { padding: $gap-lg + 4px; }
+.switcher-header {
+  margin-bottom: $gap;
+  .glyph { font-size: $font-xl; }
+}
+.switcher-row {
+  padding: 8px 14px;
+  border-radius: $radius;
+  border: 2px solid transparent;
+  @include transition(background-color, border-color);
+  &:hover { background-color: $hover; }
+  &.selected {
+    background-color: rgba($accent, 0.18);
+    border-color: $accent;
+    .switcher-title { color: $fg; }
+  }
+  &.minimized .switcher-where { color: $icon-yellow; }
+  .switcher-title { font-weight: bold; font-size: $font-size + 1px; color: $fg-dim; }
+  .switcher-class { font-size: $font-sm; color: $fg-muted; }
+  .switcher-where {
+    padding: 2px 10px;
+    border-radius: $radius-pill;
+    background-color: $surface0;
+    font-size: $font-sm;
+  }
+}

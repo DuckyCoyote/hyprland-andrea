@@ -140,9 +140,35 @@ class Hyprland(WindowManager):
     async def focus_workspace(self, workspace_id: int) -> None:
         await self.dispatch(f"hl.dsp.focus({{ workspace = {int(workspace_id)} }})", f"workspace {int(workspace_id)}")
 
-    async def popup_mode(self, enabled: bool) -> None:
-        submap = "hd-popup" if enabled else "reset"
+    async def popup_mode(self, enabled: bool, mode: str = "popup") -> None:
+        submap = f"hd-{mode}" if enabled else "reset"
         await self.dispatch(f'hl.dsp.submap("{submap}")', f"submap {submap}")
+
+    async def clients(self) -> list[dict]:
+        names = {m["id"]: m["name"] for m in await self.query("monitors")}
+        out = []
+        for c in await self.query("clients"):
+            if not c.get("mapped", True) or c.get("hidden"):
+                continue
+            ws = c.get("workspace", {})
+            out.append({
+                "address": c["address"], "class": c.get("class") or c.get("initialClass", ""),
+                "title": c.get("title", ""), "workspace": ws.get("id", 0), "workspace_name": ws.get("name", ""),
+                "monitor": names.get(c.get("monitor"), ""), "minimized": ws.get("id", 0) < 0,
+                "order": c.get("focusHistoryID", 1 << 30),
+            })
+        return sorted(out, key=lambda c: c["order"])
+
+    async def focus_window(self, address: str) -> None:
+        win = next((c for c in await self.clients() if c["address"] == address), None)
+        if not win:
+            return
+        sel = f'"address:{address}"'
+        if win["minimized"]:  # en el espacio especial «minimized»: traerla al espacio visible
+            active = (await self.query("activeworkspace")) or {}
+            await self.dispatch(f'hl.dsp.window.move({{ workspace = {int(active.get("id", 1))}, window = {sel} }})',
+                                f"movetoworkspace {active.get('id', 1)},address:{address}")
+        await self.dispatch(f"hl.dsp.focus({{ window = {sel} }})", f"focuswindow address:{address}")
 
     async def count_layers(self, namespace: str) -> int | None:
         layers = await self.query("layers")

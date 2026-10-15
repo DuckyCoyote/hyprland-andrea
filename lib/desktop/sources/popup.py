@@ -11,7 +11,10 @@ import asyncio
 from .. import config, eww, paths
 from ..daemon import Source
 
-POPUPS = {"launcher", "settings", "power", "network", "audio", "updates", "media", "weather", "calendar", "notifications", "keymap"}
+POPUPS = {"launcher", "settings", "power", "network", "audio", "updates", "media", "weather", "calendar",
+          "notifications", "keymap", "switcher"}
+# Modo de teclado del compositor mientras el popup está abierto (por defecto: Escape cierra)
+KEY_MODES = {"switcher": "switcher"}
 CLOSER = "popup-closer"
 
 
@@ -55,7 +58,7 @@ class PopupSource(Source):
         if config.load().get("popups", {}).get("close_on_click_outside", True):
             await asyncio.to_thread(eww.open_window, "popup_closer", CLOSER, screen)
         await asyncio.to_thread(eww.open_window, name, name, screen)
-        await self.wm.wm.popup_mode(True)
+        await self.wm.wm.popup_mode(True, KEY_MODES.get(name, "popup"))
         return f"{name} abierto en {monitor or 'monitor por defecto'}"
 
     async def cmd_toggle(self, name: str, monitor: str = "", tab: str = "") -> str:

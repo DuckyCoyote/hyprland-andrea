@@ -1,0 +1,26 @@
+;; Selector de ventanas (Alt+Tab): capa centrada con todas las ventanas abiertas.
+;; El teclado lo gestiona el compositor (modo «switcher»): Tab/flechas mueven la selección,
+;; Enter enfoca la ventana, Escape o clic fuera cierra. Clic en una fila también la elige.
+
+(defwindow switcher
+  :geometry (geometry :x "0" :y "0" :width "720px" :anchor "center")
+  :stacking "overlay"
+  :focusable false
+  :namespace "hd-popup"
+  (popup-frame :name "switcher-popup"
+    (box :class "switcher-header" :space-evenly false :spacing 10
+      (label :class "glyph c-accent" :text "󱂬")
+      (label :class "panel-title" :halign "start" :hexpand true :text "Ventanas abiertas")
+      (label :class "dim small" :text "Tab / ↑↓ cambiar · Enter ir · Esc cerrar"))
+    (box :orientation "v" :space-evenly false :spacing 4
+      (for w in {switcher.items ?: []}
+        (eventbox :cursor "pointer"
+          (button :class "switcher-row ${w.selected ? 'selected' : ''} ${w.minimized ? 'minimized' : ''}"
+                  :onclick "desktopctl switcher select ${w.i}"
+            (box :space-evenly false :spacing 14
+              (image :path {(w.icon ?: "") != "" ? w.icon : "${EWW_CONFIG_DIR}/../../assets/icons/blank.png"}
+                     :image-width 36 :image-height 36)
+              (box :orientation "v" :space-evenly false :hexpand true :valign "center"
+                (label :class "switcher-title" :halign "start" :xalign 0 :limit-width 60 :text {w.title})
+                (label :class "switcher-class" :halign "start" :xalign 0 :limit-width 60 :text {w.class}))
+              (label :class "switcher-where" :valign "center" :text {w.where}))))))))

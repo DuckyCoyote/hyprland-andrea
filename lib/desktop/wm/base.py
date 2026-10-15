@@ -48,8 +48,17 @@ class WindowManager:
     async def focus_workspace(self, workspace_id: int) -> None:
         pass
 
-    async def popup_mode(self, enabled: bool) -> None:
-        """Activa/desactiva un modo de teclado en el que Escape cierra los popups."""
+    async def popup_mode(self, enabled: bool, mode: str = "popup") -> None:
+        """Activa/desactiva un modo de teclado: «popup» (Escape cierra) o «switcher» (Tab/Enter
+        recorren y eligen ventana en el selector)."""
+
+    async def clients(self) -> list[dict]:
+        """Ventanas abiertas, la usada más recientemente primero:
+        [{address, class, title, workspace, workspace_name, monitor, minimized}]"""
+        return []
+
+    async def focus_window(self, address: str) -> None:
+        """Enfoca una ventana (cambiando de monitor/espacio; si está minimizada, la trae)."""
 
     async def count_layers(self, namespace: str) -> int | None:
         """Número de superficies layer-shell con ese namespace (None si no se puede saber)."""
