@@ -75,6 +75,7 @@
     "accent": "mauve",
     "font_family": "JetBrainsMono Nerd Font",
     "font_size": 13,
+    "font_weight": 400,
     "radius": 10,
     "spacing": 8,
     "border_width": 1,
@@ -82,6 +83,12 @@
     "opacity": 0.92,
     "shadows": true,
     "animations": true
+  },
+
+  "kitty": {
+    "font_family": "CaskaydiaCove Nerd Font",
+    "font_style": "SemiBold",
+    "font_size": 13
   },
 
   "nvim": {

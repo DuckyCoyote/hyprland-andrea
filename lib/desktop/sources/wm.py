@@ -49,15 +49,19 @@ class WmSource(Source):
                 continue
             failures = 0
             log("Eww no responde: reiniciándolo")
-            popup = self.hub.sources["popup"]
-            await popup.reset()  # libera el teclado sin esperar a Eww
-            async with self.hub.eww_lock:
-                await asyncio.to_thread(eww.restart_daemon)
-                for _ in range(30):
-                    if not await self.wm.count_layers("hd-bar"):
-                        break
-                    await asyncio.sleep(0.1)
-                await self._sync_bars(retry=False)
+            await self.restart_eww()
+
+    async def restart_eww(self) -> None:
+        """Reinicio limpio de la interfaz: Eww nuevo (sin ventanas huérfanas), popups cerrados,
+        teclado liberado y una barra por monitor."""
+        await self.hub.sources["popup"].reset()  # libera el teclado sin esperar a Eww
+        async with self.hub.eww_lock:
+            await asyncio.to_thread(eww.restart_daemon)
+            for _ in range(30):  # esperar a que el compositor retire las superficies viejas
+                if not await self.wm.count_layers("hd-bar"):
+                    break
+                await asyncio.sleep(0.1)
+            await self._sync_bars(retry=False)
 
     async def on_change(self, kind: str) -> None:
         self._refresh()
@@ -184,7 +188,7 @@ class WmSource(Source):
                         break
                     await asyncio.sleep(0.1)
                 await self._sync_bars(retry=False)
-                await self.hub.sources["popup"].reopen()
+                await self.hub.sources["popup"].reset()
 
     async def _too_many_bars(self, expected: int) -> bool:
         layers = await self.wm.count_layers("hd-bar")
@@ -196,15 +200,13 @@ class WmSource(Source):
         # bloquea Eww: se cierran todas, se recarga sin ventanas y se vuelven a abrir.
         async with self.hub.eww_lock:
             await asyncio.to_thread(eww.close_all)
-            await asyncio.to_thread(eww.reload)
-            for _ in range(50):
-                if await asyncio.to_thread(eww.running):
-                    break
-                await asyncio.sleep(0.1)
-            else:
+            if not await asyncio.to_thread(eww.reload):
                 log("Eww no respondió tras recargar: reiniciando Eww")
                 await asyncio.to_thread(eww.restart_daemon)
             await self._sync_bars()
+        # el popup abierto se reabre cuando Eww ya terminó de recrear las barras: abrir una ventana
+        # pesada (Configuración) justo tras recargar lo bloqueaba
+        await asyncio.sleep(0.4)
         await self.hub.sources["popup"].reopen()
 
     # ---- órdenes -------------------------------------------------------------
@@ -221,6 +223,11 @@ class WmSource(Source):
             return
         step = 1 if direction in ("down", "next") else -1
         await self.wm.focus_workspace(ids[(ids.index(current) + step) % len(ids)])
+
+    async def cmd_reset(self) -> str:
+        """Super+Ctrl+R: deja barras y widgets como recién iniciados."""
+        await self.restart_eww()
+        return f"interfaz reiniciada: {', '.join(sorted(self.bars))}"
 
     async def cmd_bars(self) -> str:
         await self.sync_bars()

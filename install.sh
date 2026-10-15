@@ -178,7 +178,7 @@ elif [[ -f "$KITTY_CONF" ]]; then
     fi
 else
     run mkdir -p "$(dirname "$KITTY_CONF")"
-    ((DRY)) || printf '# Creado por hyprland-desktop\n%s\nfont_size 11\nwindow_padding_width 8\nconfirm_os_window_close 0\nenable_audio_bell no\n' "$INCLUDE" > "$KITTY_CONF"
+    ((DRY)) || printf '# Creado por hyprland-desktop\n%s\nwindow_padding_width 8\nconfirm_os_window_close 0\nenable_audio_bell no\n' "$INCLUDE" > "$KITTY_CONF"
     record "created" "$KITTY_CONF" ""
     ok "Creado $KITTY_CONF"
 fi

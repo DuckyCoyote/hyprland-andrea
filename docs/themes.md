@@ -54,9 +54,10 @@ Para soportar otro programa (p. ej. rofi o GTK), añade una función a `render.p
 ## Kitty y Neovim
 
 - **kitty** (`config/kitty/theme.conf`, generado): colores del tema y pestañas arriba,
-  minimalistas (una píldora redondeada con número y nombre; activa en rojo, inactivas en verde
-  como en awesome-minimal; `ctrl+shift+t` /
-  `ctrl+shift+enter` abren pestaña/ventana en el directorio actual).
+  minimalistas (píldora redondeada con el número en un círculo y el nombre; activa con el acento).
+  Incluye `config/kitty/keys.conf` (fijo): los atajos de awesome-minimal (ventanas con
+  Ctrl+flechas, búferes F3–F6, Ctrl+Shift+Z, pestaña/ventana en el directorio actual, Alt+flechas
+  por palabras, Alt+} Unicode).
 - **Neovim**: `config/nvim/lua/hyprland_desktop/palette.lua` (generado) contiene una paleta para
   monokai-pro con el mismo reparto de colores que la configuración original del usuario y el
   fondo idéntico al de kitty. El plugin `config/nvim/hyprland-desktop.lua` (enlazado en

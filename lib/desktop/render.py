@@ -56,6 +56,7 @@ def eww_scss(ctx: dict) -> str:
         f"$is-dark: {'true' if ctx['dark'] else 'false'};",
         f'$font-family: "{font}", "JetBrainsMono Nerd Font", "Symbols Nerd Font", monospace;',
         f"$font-size: {int(ap.get('font_size', 13))}px;",
+        f"$font-weight: {int(ap.get('font_weight', 400))};",
         f"$radius: {int(ap.get('radius', 10))}px;",
         f"$spacing: {int(ap.get('spacing', 8))}px;",
         f"$border-width: {int(ap.get('border_width', 1))}px;",
@@ -226,7 +227,7 @@ def kitty(ctx: dict) -> str:
          tp["surface2"] if dark else tp["subtext0"], tp["red"], tp["green"], tp["yellow"], tp["blue"], tp["pink"], tp["teal"],
          tp["subtext0"] if dark else tp["surface1"]]
     lines = [f"# {HEADER}",
-             f"font_family {ctx['ap'].get('font_family', 'JetBrainsMono Nerd Font')}",
+             *_kitty_font(ctx),
              f"foreground {tp['text']}", f"background {p['base']}",
              f"selection_foreground {p['base']}", f"selection_background {p['rosewater']}",
              f"cursor {tp['rosewater']}", f"cursor_text_color {p['base']}",
@@ -243,7 +244,7 @@ def kitty(ctx: dict) -> str:
              "active_tab_title_template " + _pill(ctx["accent"], p["crust"],
                                                   _mix(ctx["accent"], "#ffffff" if dark else "#000000", 0.45),
                                                   p["crust"]),
-             "map ctrl+shift+t new_tab_with_cwd", "map ctrl+shift+enter new_window_with_cwd"]
+             "include keys.conf"]  # atajos de awesome-minimal (archivo fijo, no depende del tema)
     lines += [f"color{i} {v}" for i, v in enumerate(c)]
     shell = ctx["settings"].get("apps", {}).get("shell", "")
     if shell:
@@ -258,6 +259,17 @@ def _mix(c1: str, c2: str, weight: float) -> str:
     """Mezcla dos colores #rrggbb; `weight` es la proporción del segundo."""
     a, b = (tuple(int(c.lstrip("#")[i:i + 2], 16) for i in (0, 2, 4)) for c in (c1, c2))
     return "#" + "".join(f"{round(x + (y - x) * weight):02x}" for x, y in zip(a, b))
+
+
+def _kitty_font(ctx: dict) -> list[str]:
+    """Fuente de kitty: settings.kitty (propia, como la de Konsole) o, si no hay, la de la interfaz."""
+    k = ctx["settings"].get("kitty", {})
+    family = k.get("font_family") or ctx["ap"].get("font_family", "JetBrainsMono Nerd Font")
+    style = k.get("font_style", "")
+    lines = [f'font_family family="{family}"' + (f" style={style}" if style else "")]
+    if k.get("font_size"):
+        lines.append(f"font_size {k['font_size']}")
+    return lines
 
 
 def _pill(bg: str, fg: str, num_bg: str, num_fg: str) -> str:

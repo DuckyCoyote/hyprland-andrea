@@ -8,9 +8,9 @@ from pathlib import Path
 
 from .. import config, eww, paths, previews, render
 from ..daemon import Source
-from ..util import have, run
+from ..util import Debouncer, have, run
 
-INT_KEYS = {"font_size": (8, 24), "radius": (0, 24), "spacing": (2, 20), "border_width": (0, 4)}
+INT_KEYS = {"font_size": (8, 24), "font_weight": (100, 900), "radius": (0, 24), "spacing": (2, 20), "border_width": (0, 4)}
 BOOL_KEYS = {"transparency", "shadows", "animations"}
 ACCENTS = ["mauve", "lavender", "blue", "sapphire", "sky", "teal", "green", "yellow", "peach", "maroon", "red", "pink", "flamingo", "rosewater"]
 
@@ -24,6 +24,7 @@ class AppearanceSource(Source):
         self.walls: list[dict] = []
         self.wall_dir = ""
         self.cursors: list[dict] = []
+        self._apply_soon = Debouncer(0.5, self.apply)
 
     async def start(self) -> None:
         self.fonts = await asyncio.to_thread(render.font_families)
@@ -48,6 +49,7 @@ class AppearanceSource(Source):
         ap = ctx["ap"]
         self.publish({
             **{k: ap.get(k) for k in ("font_family", "font_size", "radius", "spacing", "border_width", "opacity")},
+            "font_weight": int(ap.get("font_weight", 400)),
             **{k: bool(render._bool(ap.get(k))) for k in BOOL_KEYS},
             "theme": ctx["theme_id"], "accent": ctx["accent_name"],
             "themes": themes,
@@ -82,6 +84,8 @@ class AppearanceSource(Source):
         if key in INT_KEYS:
             lo, hi = INT_KEYS[key]
             val = max(lo, min(hi, int(round(float(value)))))
+            if key == "font_weight":  # los pesos de fuente van de 100 en 100
+                val = int(round(val / 100.0)) * 100
         elif key in BOOL_KEYS:
             val = (not render._bool(current.get(key))) if value == "toggle" else render._bool(value)
         elif key == "opacity":
@@ -124,7 +128,10 @@ class AppearanceSource(Source):
         if current.get(key) == val:
             return "sin cambios"
         config.set_appearance(key, val)
-        await self.apply()
+        # Se guarda al momento, pero se aplica una sola vez medio segundo después del último cambio:
+        # arrastrar un deslizador encadenaba recargas de Eww y acababa bloqueándolo.
+        self._publish()
+        self._apply_soon()
         return f"{key} = {val}"
 
     async def _apply_cursor(self) -> None:

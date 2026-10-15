@@ -2,6 +2,8 @@
 import json
 import os
 import subprocess
+import threading
+import time
 
 from . import paths
 from .util import debug, log
@@ -13,7 +15,20 @@ def _cmd(*args: str) -> list[str]:
     return [EWW, "-c", str(paths.EWW_DIR), *args]
 
 
+# Eww se bloquea o deja ventanas huérfanas si recibe órdenes de ventanas mientras recarga o abre
+# otra (las fuentes del daemon las lanzan desde hilos distintos). Todas pasan por este candado.
+_WINDOW_OPS = {"open", "close", "close-all", "reload", "kill", "open-many"}
+_LOCK = threading.RLock()
+
+
 def call(*args: str, timeout: float = 10) -> tuple[int, str]:
+    if args and args[0] in _WINDOW_OPS:
+        with _LOCK:
+            return _call(*args, timeout=timeout)
+    return _call(*args, timeout=timeout)
+
+
+def _call(*args: str, timeout: float = 10) -> tuple[int, str]:
     try:
         p = subprocess.run(_cmd(*args), capture_output=True, text=True, timeout=timeout)
     except FileNotFoundError:
@@ -38,13 +53,15 @@ def start_daemon() -> None:
     env = {**os.environ, "PATH": f"{paths.ROOT / 'bin'}:{os.environ.get('PATH', '/usr/bin')}"}
     # En primer plano (sin daemonizar) para conservar su registro: errores de widgets y bloqueos
     paths.CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    with open(paths.CACHE_DIR / "eww.log", "w") as logfile:
+    logpath = paths.CACHE_DIR / "eww.log"
+    if logpath.exists():  # se conserva el registro anterior (p. ej. el de un Eww que se colgó)
+        logpath.replace(logpath.with_suffix(".log.1"))
+    with open(logpath, "w") as logfile:
         subprocess.Popen(_cmd("daemon", "--no-daemonize"), stdin=subprocess.DEVNULL, stdout=logfile,
                          stderr=subprocess.STDOUT, start_new_session=True, env=env)
     for _ in range(50):
         if running():
             return
-        import time
         time.sleep(0.1)
     log("eww daemon no respondió")
 
@@ -92,8 +109,15 @@ def active_windows_or_none() -> dict[str, str] | None:
     return result
 
 
-def reload() -> None:
-    call("reload", timeout=20)
+def reload() -> bool:
+    """Recarga y no suelta el candado hasta que Eww vuelve a responder (True si respondió)."""
+    with _LOCK:
+        call("reload", timeout=20)
+        for _ in range(50):
+            if running():
+                return True
+            time.sleep(0.1)
+        return False
 
 
 def close_all() -> None:
@@ -103,9 +127,9 @@ def close_all() -> None:
 def restart_daemon() -> None:
     """Reinicia el daemon de Eww: única forma de eliminar ventanas huérfanas que Eww ya no controla
     o de recuperarlo si se colgó (en ese caso `eww kill` no responde y se termina el proceso)."""
-    import time
-    call("kill", timeout=3)
-    subprocess.run(["pkill", "-f", f"{EWW} -c {paths.EWW_DIR} daemon"], stderr=subprocess.DEVNULL)
-    time.sleep(0.5)
-    subprocess.run(["pkill", "-9", "-f", f"{EWW} -c {paths.EWW_DIR} "], stderr=subprocess.DEVNULL)
-    start_daemon()
+    with _LOCK:
+        call("kill", timeout=3)
+        subprocess.run(["pkill", "-f", f"{EWW} -c {paths.EWW_DIR} daemon"], stderr=subprocess.DEVNULL)
+        time.sleep(0.5)
+        subprocess.run(["pkill", "-9", "-f", f"{EWW} -c {paths.EWW_DIR} "], stderr=subprocess.DEVNULL)
+        start_daemon()

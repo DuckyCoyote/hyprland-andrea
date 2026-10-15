@@ -13,6 +13,7 @@ desktopctl apply
 | `quick_launch` | accesos rápidos de la barra (orden, icono, comando, tooltip) |
 | `monitors` | salida, modo, posición, escala, `primary` |
 | `wallpaper` / `wallpaper_dir` | fondo inicial y carpeta que lee el selector de fondos (vacío = `~/Imágenes/Wallpapers`). El fondo y el cursor elegidos en Configuración → Apariencia se guardan en `appearance.json` y persisten entre sesiones |
+| `kitty.font_family` / `font_style` / `font_size` | fuente propia de kitty (por defecto CaskaydiaCove Nerd Font SemiBold 13, como Konsole); sin ellos, kitty usa la fuente de la interfaz |
 | `nvim.sync_theme` | Neovim (monokai-pro) sigue el tema global con el fondo de kitty; `false` = tema original de Neovim |
 | `updates.command` | orden del botón «Actualizar»: `auto` = `garuda-update` (solo repositorios; los paquetes del AUR se listan pero no se actualizan) o, fuera de Garuda, el helper AUR / `pacman -Syu` |
 | `bar.modules` / `bar.per_monitor` | qué grupos muestra la barra y en qué monitor (`window` = icono de la ventana enfocada, junto a los accesos rápidos tras un separador) |
@@ -22,7 +23,7 @@ desktopctl apply
 | `updates` | frecuencia de comprobación y helper AUR (`auto`, `paru`, `yay`, `none`) |
 | `idle` | minutos para bloquear, apagar pantalla y suspender (0 = nunca) |
 | `wallpaper` | ruta de imagen; vacío = color sólido del tema |
-| `appearance` | tema, acento, fuente, tamaño, radio, espaciado, transparencia, sombras, animaciones |
+| `appearance` | tema, acento, fuente, tamaño, grosor (`font_weight`, 100–900), radio (`radius`, solo en settings.json), espaciado, transparencia, sombras, animaciones |
 | `popups.close_on_click_outside` | cerrar paneles al hacer clic fuera |
 
 ## Accesos rápidos

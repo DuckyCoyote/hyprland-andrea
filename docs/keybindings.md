@@ -18,7 +18,7 @@ Origen: `keys/globalkeys.lua` y `keys/clientkeys.lua` de
 | Super+S | Chuleta de atajos flotante (capa centrada, agrupada por secciones) | hotkeys_popup |
 | Super+Shift+T | Selector de temas y fuentes | *nuevo* |
 | Super+Shift+Q | Menú de energía (con confirmación) | salir de awesome (inmediato) |
-| Super+Ctrl+R | Recargar Hyprland y Eww | awesome.restart |
+| Super+Ctrl+R | Reiniciar Hyprland, barras y widgets (Eww limpio: elimina barras duplicadas o widgets bloqueados) | awesome.restart |
 | Super+Alt+L | Bloquear pantalla | *nuevo* |
 | Super+Alt+N / A / M / U | Paneles de red / audio / multimedia / actualizaciones | *nuevo* |
 | Super+Alt+O | Bandeja de notificaciones | *nuevo* |

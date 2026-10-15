@@ -137,7 +137,7 @@
                         :onclick "${EWW_CMD} update font_picker=false; desktopctl appearance set font_family '${f}'"
                   (label :halign "start" :xalign 0 :text f)))))))
       (setting-slider :label "Tamaño de fuente" :key "font_size" :min 8 :max 24 :value {appearance.font_size ?: 13})
-      (setting-slider :label "Radio de bordes" :key "radius" :min 0 :max 24 :value {appearance.radius ?: 10})
+      (setting-slider :label "Grosor de la fuente" :key "font_weight" :min 100 :max 900 :value {appearance.font_weight ?: 400})
       (setting-slider :label "Espaciado" :key "spacing" :min 2 :max 20 :value {appearance.spacing ?: 8})
       (setting-toggle :label "Efectos de transparencia" :key "transparency" :value {appearance.transparency ?: false})
       (box :visible {appearance.transparency == true}
