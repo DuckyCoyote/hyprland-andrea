@@ -3,6 +3,7 @@
   "variant": "dark",
   "icon_palette": "mocha",
   "nvim": { "backgrounds_only": true },
+  "kitty": { "text_palette": "mocha" },
   "palette": {
     "rosewater": "#e0e0e0",
     "flamingo": "#d4d4d4",

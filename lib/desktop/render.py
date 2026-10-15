@@ -218,16 +218,19 @@ general {{
 
 def kitty(ctx: dict) -> str:
     p, dark = ctx["pal"], ctx["dark"]
-    c = [p["surface1"] if dark else p["subtext1"], p["red"], p["green"], p["yellow"], p["blue"], p["pink"], p["teal"],
-         p["subtext1"] if dark else p["surface2"],
-         p["surface2"] if dark else p["subtext0"], p["red"], p["green"], p["yellow"], p["blue"], p["pink"], p["teal"],
-         p["subtext0"] if dark else p["surface1"]]
+    # Colores del texto (primer plano y paleta ANSI): un tema puede tomarlos de otro con
+    # "kitty": {"text_palette": "<tema>"}; los fondos siguen siendo los del tema propio.
+    tp = config.themes().get(ctx["theme"].get("kitty", {}).get("text_palette", ""), {}).get("palette", p)
+    c = [tp["surface1"] if dark else tp["subtext1"], tp["red"], tp["green"], tp["yellow"], tp["blue"], tp["pink"], tp["teal"],
+         tp["subtext1"] if dark else tp["surface2"],
+         tp["surface2"] if dark else tp["subtext0"], tp["red"], tp["green"], tp["yellow"], tp["blue"], tp["pink"], tp["teal"],
+         tp["subtext0"] if dark else tp["surface1"]]
     lines = [f"# {HEADER}",
              f"font_family {ctx['ap'].get('font_family', 'JetBrainsMono Nerd Font')}",
-             f"foreground {p['text']}", f"background {p['base']}",
+             f"foreground {tp['text']}", f"background {p['base']}",
              f"selection_foreground {p['base']}", f"selection_background {p['rosewater']}",
-             f"cursor {p['rosewater']}", f"cursor_text_color {p['base']}",
-             f"url_color {p['rosewater']}", f"active_border_color {ctx['accent']}", f"inactive_border_color {p['overlay0']}",
+             f"cursor {tp['rosewater']}", f"cursor_text_color {p['base']}",
+             f"url_color {tp['rosewater']}", f"active_border_color {ctx['accent']}", f"inactive_border_color {p['overlay0']}",
              # Pestañas: arriba y minimalistas, cada una es una píldora redondeada con número y
              # nombre, con los colores del tema global (activa = acento, inactivas = superficie).
              "tab_bar_edge top", "tab_bar_style separator", 'tab_separator " "',

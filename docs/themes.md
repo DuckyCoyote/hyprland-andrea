@@ -29,6 +29,8 @@ tocar el repositorio, en `~/.config/hyprland-desktop/themes/`:
 - `icon_palette` (opcional): id de otro tema del que tomar los colores de los iconos (clases
   `.c-*`: campana, micrófono, actualizaciones…). El tema monocromo usa `"mocha"` para que los
   iconos conserven su color.
+- `kitty.text_palette` (opcional): id del tema del que kitty toma los colores del texto (primer
+  plano y paleta ANSI) manteniendo los fondos propios. El monocromo usa `"mocha"`.
 - `base`/`mantle`/`crust`: fondos de mayor a menor luminosidad (en temas claros, al revés que
   el texto). `surface*`: tarjetas y bordes. `overlay*`/`subtext*`: textos secundarios.
 - Los 14 colores con nombre se ofrecen como acentos en el selector.
