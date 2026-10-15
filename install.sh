@@ -205,6 +205,28 @@ if [[ -f /usr/bin/ksecretd ]]; then
         record "created" "$SECRETS_SVC" ""
         ok "Servicio de contraseñas: KWallet"
     fi
+    # pam_gnome_keyring (GDM y SDDM) arranca gnome-keyring con el componente secrets y se queda con
+    # org.freedesktop.secrets antes que ksecretd: se deja solo con pkcs11.
+    KEYRING_DROPIN="$CONFIG_HOME/systemd/user/gnome-keyring-daemon.service.d/hyprland-desktop.conf"
+    if [[ -f /usr/lib/systemd/user/gnome-keyring-daemon.service && ! -e "$KEYRING_DROPIN" ]]; then
+        run mkdir -p "$(dirname "$KEYRING_DROPIN")"
+        ((DRY)) || printf '# hyprland-desktop: las contraseñas las da KWallet (ksecretd); gnome-keyring sin el componente secrets\n[Service]\nExecStart=\nExecStart=/usr/bin/gnome-keyring-daemon --foreground --components=pkcs11 --control-directory=%%t/keyring\n' > "$KEYRING_DROPIN"
+        record "created" "$KEYRING_DROPIN" ""
+        run systemctl --user daemon-reload
+        ok "gnome-keyring ya no ofrece el servicio de contraseñas"
+    fi
+    # GDM no pasa la contraseña de inicio a KWallet (su PAM no incluye pam_kwallet5; el de SDDM sí):
+    # con GDM el monedero queda cerrado y pide su contraseña. Se ofrece cambiar a SDDM.
+    if [[ "$(readlink -f /etc/systemd/system/display-manager.service)" == */gdm.service ]]; then
+        if [[ -f /usr/lib/systemd/system/sddm.service ]] \
+                && ask "¿Cambiar el gestor de inicio de GDM a SDDM para que KWallet se abra al iniciar sesión (sudo)?"; then
+            run sudo systemctl disable gdm.service
+            run sudo systemctl enable sddm.service
+            ok "SDDM será el gestor de inicio a partir del próximo arranque"
+        else
+            warn "Con GDM, KWallet pedirá su contraseña en cada sesión (instala sddm para evitarlo)"
+        fi
+    fi
     # Navegadores Chromium/Electron no detectan KWallet fuera de Plasma: se fuerza
     if [[ -x /usr/bin/brave ]] && ! grep -qs 'password-store' "$CONFIG_HOME/brave-flags.conf"; then
         ((DRY)) || echo '--password-store=kwallet6' >> "$CONFIG_HOME/brave-flags.conf"

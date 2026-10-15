@@ -87,3 +87,13 @@ y Brave, Teams o `gh` parecían haber perdido sus credenciales (seguían en `kde
 Solución: `modules/autostart.lua` ejecuta `pam_kwallet_init`, el instalador registra `ksecretd`
 como `org.freedesktop.secrets` para el usuario, y Brave/Teams reciben `--password-store=kwallet6`
 (Chromium/Electron solo eligen KWallet por sí mismos si el escritorio se llama KDE).
+
+Además, `pam_gnome_keyring auto_start` (en el PAM de SDDM y de GDM) arranca gnome-keyring con el
+componente `secrets`, que se queda con `org.freedesktop.secrets` antes que `ksecretd` (el archivo de
+servicio D-Bus solo cuenta si nadie tiene ya el nombre). gnome-keyring no se desinstala porque otros
+paquetes dependen de él (`github-desktop`, `qtkeychain-qt6`): el instalador lo deja solo con `pkcs11`
+(drop-in de `gnome-keyring-daemon.service`).
+
+**GDM** no sirve: su PAM (`gdm-password`) no incluye `pam_kwallet5`, así que el monedero no recibe la
+contraseña de inicio y queda cerrado. Se probó a añadirlo a `/etc/pam.d/gdm-password`, pero en vez de
+mantener un PAM propio el instalador ofrece volver a **SDDM**, cuyo PAM ya lo trae.

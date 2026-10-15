@@ -67,8 +67,37 @@ def _running() -> int | None:
         return None
 
 
+def _instance(pid: int | None = None) -> str | None:
+    """HYPRLAND_INSTANCE_SIGNATURE de un proceso (o del actual)."""
+    if pid is None:
+        return os.environ.get("HYPRLAND_INSTANCE_SIGNATURE")
+    try:
+        env = open(f"/proc/{pid}/environ", "rb").read().split(b"\0")
+    except OSError:
+        return None
+    for var in env:
+        if var.startswith(b"HYPRLAND_INSTANCE_SIGNATURE="):
+            return var.split(b"=", 1)[1].decode()
+    return None
+
+
+def _compositor_gone() -> bool:
+    """True si la sesión de Hyprland de la que venimos ya terminó (su socket ya no existe)."""
+    sig = _instance()
+    return bool(sig) and not (paths.RUNTIME_HOME / "hypr" / sig / ".socket.sock").exists()
+
+
 def start() -> None:
-    if _running():
+    # Al cerrar sesión, los suscriptores de la Eww saliente (desktop-sub) intentaban arrancar el
+    # daemon de nuevo: quedaba uno ligado a la sesión muerta y la nueva no abría ninguna barra.
+    if _compositor_gone():
+        print("la sesión de Hyprland ya terminó: no se arranca desktopd")
+        return
+    pid = _running()
+    if pid and _instance(pid) != _instance():
+        print("desktopd pertenece a otra sesión de Hyprland: reiniciándolo")
+        stop()
+    elif pid:
         print("desktopd ya está en ejecución")
         return
     paths.ensure_dirs()
