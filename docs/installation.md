@@ -23,6 +23,11 @@ El instalador:
    `~/.local/bin/desktop-sub` al repositorio. Si ya existen, **pregunta** y los mueve a
    `~/.local/state/hyprland-desktop/backups/<fecha>/`.
 5. Añade una línea `include` a `kitty.conf` (o lo crea si no existe). Nunca lo reemplaza.
+   Opcionalmente (solo si respondes que sí; `--yes` no lo acepta) enlaza `~/.config/nvim` a
+   `dotfiles/nvim` (AstroNvim) con respaldo, y enlaza el plugin que sincroniza el tema de Neovim.
+   Si SDDM está instalado, ofrece copiar el tema `config/sddm/gnome-gdm` a
+   `/usr/share/sddm/themes/` y activarlo (`/etc/sddm.conf.d/zz-hyprland-desktop.conf`), con sudo.
+   Tras editar el tema en el repositorio, vuelve a ejecutar el instalador para actualizar la copia.
 6. Copia `settings.json` a `~/.config/hyprland-desktop/` si aún no existe (nunca lo sobrescribe).
 7. Genera los archivos derivados (`desktopctl apply`) y ejecuta `desktopctl doctor`.
 

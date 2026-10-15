@@ -16,6 +16,8 @@ diseño basado en `docs/references/mockup.png` (barra de cápsulas inspirada en 
 | Paneles | Wi-Fi/red, audio, actualizaciones (pacman + AUR), reproductor, clima, calendario, energía |
 | Temas | Catppuccin Mocha (predeterminado), Macchiato, Frappé, Latte y Monocromático; cambio en vivo y persistente |
 | Hyprland | Configuración Lua modular, dos monitores, atajos heredados de AwesomeWM, hyprlock/hypridle |
+| SDDM | Tema de la pantalla de inicio estilo GDM (`config/sddm/gnome-gdm`, Qt6) |
+| Neovim | Configuración AstroNvim + monokai-pro (`dotfiles/nvim`, opcional) que sigue el tema global |
 
 ## Instalación rápida
 
@@ -71,6 +73,9 @@ bin/                 desktopctl (CLI) · desktop-sub (suscripción de Eww)
 lib/desktop/         daemon, generador de config (render.py), adaptadores wm/, fuentes sources/
 config/hypr/         hyprland.lua + modules/*.lua
 config/eww/          vars.yuck · components/ · widgets/<widget>/{.yuck,.scss} · styles/
+config/nvim/         plugin que sincroniza el tema de Neovim (monokai-pro)
+config/sddm/         tema de SDDM estilo GDM (se copia a /usr/share/sddm/themes)
+dotfiles/nvim/       configuración completa de Neovim (AstroNvim), enlazada en ~/.config/nvim
 themes/              paletas
 assets/icons/        iconos de la barra (GPL-3.0, gh0stzk)
 docs/                guías y referencias visuales

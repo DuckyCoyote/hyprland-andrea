@@ -183,6 +183,19 @@ else
     ok "Creado $KITTY_CONF"
 fi
 
+# Neovim incluido (AstroNvim + monokai-pro, dotfiles/nvim): opcional. Reemplaza ~/.config/nvim
+# (con respaldo), así que nunca se acepta solo con --yes: hay que pedirlo.
+NVIM_DIR="$CONFIG_HOME/nvim"
+if [[ -L "$NVIM_DIR" && "$(readlink -f "$NVIM_DIR")" == "$(readlink -f "$ROOT/dotfiles/nvim")" ]]; then
+    ok "$NVIM_DIR ya apunta al proyecto"
+elif ((!YES)) && ask "¿Usar la configuración de Neovim incluida (AstroNvim, dotfiles/nvim)?"; then
+    [[ -e "$NVIM_DIR" || -L "$NVIM_DIR" ]] && backup "$NVIM_DIR"
+    run mkdir -p "$CONFIG_HOME"
+    run ln -s "$ROOT/dotfiles/nvim" "$NVIM_DIR"
+    record "link" "$NVIM_DIR" "$ROOT/dotfiles/nvim"
+    ok "$NVIM_DIR → $ROOT/dotfiles/nvim (los plugins se instalan al abrir nvim)"
+fi
+
 # Neovim: si usa monokai-pro, se añade un plugin (enlace) que sincroniza su paleta con el tema
 NVIM_SPEC="$CONFIG_HOME/nvim/lua/plugins/hyprland-desktop.lua"
 if [[ -L "$NVIM_SPEC" ]]; then
@@ -237,6 +250,31 @@ if [[ -f /usr/bin/ksecretd ]]; then
         ((DRY)) || printf '{\n  "performance": {\n    "electronCLIFlags": [["password-store", "kwallet6"]]\n  }\n}\n' > "$CONFIG_HOME/teams-for-linux/config.json"
         record "created" "$CONFIG_HOME/teams-for-linux/config.json" ""
         ok "Teams usará KWallet"
+    fi
+fi
+
+# Tema de SDDM estilo GDM (config/sddm/gnome-gdm). SDDM solo lee temas de /usr/share/sddm/themes:
+# se copia allí con sudo (volver a ejecutar el instalador lo actualiza).
+SDDM_THEME=/usr/share/sddm/themes/gnome-gdm
+if [[ -f /usr/lib/systemd/system/sddm.service ]]; then
+    if [[ -d "$SDDM_THEME" ]] && diff -rq "$ROOT/config/sddm/gnome-gdm" "$SDDM_THEME" >/dev/null; then
+        ok "Tema de SDDM al día"
+    elif ask "¿$( [[ -d "$SDDM_THEME" ]] && echo Actualizar || echo Instalar ) el tema de SDDM estilo GDM en $SDDM_THEME (sudo)?"; then
+        [[ -d "$SDDM_THEME" ]] || record "sudo-created" "$SDDM_THEME" ""
+        run sudo rm -rf "$SDDM_THEME"
+        run sudo cp -r "$ROOT/config/sddm/gnome-gdm" "$SDDM_THEME"
+        ok "Tema de SDDM instalado (prueba: sddm-greeter-qt6 --test-mode --theme $SDDM_THEME)"
+    fi
+    # Tema activo: gana el último Current= (sddm.conf.d por orden alfabético y luego sddm.conf)
+    current="$(cat /etc/sddm.conf.d/*.conf /etc/sddm.conf 2>/dev/null | sed -n 's/^Current=//p' | tail -1)"
+    if [[ -d "$SDDM_THEME" && "$current" != "gnome-gdm" ]] \
+            && ask "¿Activar el tema gnome-gdm en SDDM (ahora: ${current:-predeterminado}; sudo)?"; then
+        SDDM_CONF=/etc/sddm.conf.d/zz-hyprland-desktop.conf  # «zz»: se lee después de kde_settings.conf
+        if ((DRY)); then echo "   [dry-run] escribir $SDDM_CONF"; else
+            printf '# hyprland-desktop: tema de la pantalla de inicio\n[Theme]\nCurrent=gnome-gdm\n' | sudo tee "$SDDM_CONF" >/dev/null
+        fi
+        record "sudo-created" "$SDDM_CONF" ""
+        ok "SDDM usará gnome-gdm"
     fi
 fi
 

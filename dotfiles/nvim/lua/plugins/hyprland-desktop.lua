@@ -1,0 +1,1 @@
+../../../../config/nvim/hyprland-desktop.lua

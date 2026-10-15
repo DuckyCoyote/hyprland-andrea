@@ -48,6 +48,10 @@ tac "$MANIFEST" | while IFS=$'\t' read -r kind target dest; do
             if [[ -f "$target" ]] && ask "¿Eliminar $target (creado por el instalador)?"; then
                 run rm "$target"; echo " ✔ Eliminado: $target"
             fi ;;
+        sudo-created)  # tema de SDDM y su configuración, fuera de $HOME
+            if [[ -e "$target" ]] && ask "¿Eliminar $target (creado por el instalador; sudo)?"; then
+                run sudo rm -r "$target"; echo " ✔ Eliminado: $target"
+            fi ;;
     esac
 done
 

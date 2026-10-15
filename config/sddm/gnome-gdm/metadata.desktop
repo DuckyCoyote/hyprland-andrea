@@ -1,0 +1,14 @@
+[SddmGreeterTheme]
+Name=GNOME (GDM)
+Description=Tema que imita la pantalla de inicio de sesión de GDM (GNOME) en modo oscuro
+Author=duckycoyote
+License=GPL-3.0-or-later
+Type=sddm-theme
+Version=1.0
+Website=
+Screenshot=preview.png
+MainScript=Main.qml
+ConfigFile=theme.conf
+Theme-Id=gnome-gdm
+Theme-API=2.0
+QtVersion=6
