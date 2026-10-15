@@ -19,6 +19,13 @@ hl.on("hyprland.start", function()
         .. "QT_QPA_PLATFORM QT_QPA_PLATFORMTHEME QT_WAYLAND_DISABLE_WINDOWDECORATION XDG_MENU_PREFIX "
         .. "XCURSOR_THEME XCURSOR_SIZE HYPRCURSOR_THEME HYPRCURSOR_SIZE GDK_BACKEND")
 
+    -- KWallet como en Plasma: pam_kwallet_init conecta ksecretd (que recibió la contraseña al
+    -- iniciar sesión) al bus. Sin esto D-Bus arrancaba gnome-keyring, vacío, y Brave, Teams o gh
+    -- parecían haber perdido sus credenciales. Ver docs/decisions.md.
+    if exists("/usr/lib/pam_kwallet_init") then
+        hl.exec_cmd("/usr/lib/pam_kwallet_init")
+    end
+
     hl.exec_cmd(ctx.ctl("start"))
     hl.exec_cmd("sh -c 'command -v awww-daemon >/dev/null && awww-daemon & sleep 1; " .. ctx.ctl("wallpaper") .. "'")
     hl.exec_cmd("hypridle")

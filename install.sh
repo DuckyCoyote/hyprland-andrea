@@ -21,6 +21,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 BIN_DIR="$HOME/.local/bin"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 BACKUP_DIR="$STATE_HOME/hyprland-desktop/backups/$STAMP"
@@ -191,6 +192,29 @@ elif [[ -d "$CONFIG_HOME/nvim/lua/plugins" ]] && grep -rqs "monokai-pro" "$CONFI
         run ln -s "$ROOT/config/nvim/hyprland-desktop.lua" "$NVIM_SPEC"
         record "link" "$NVIM_SPEC" "$ROOT/config/nvim/hyprland-desktop.lua"
         ok "Neovim seguirá el tema global (desactivable con nvim.sync_theme)"
+    fi
+fi
+
+# KWallet como servicio de contraseñas (igual que en Plasma). Sin esto, fuera de Plasma D-Bus arranca
+# gnome-keyring (vacío) y Brave, Teams, gh, etc. parecen haber perdido sus credenciales.
+if [[ -f /usr/bin/ksecretd ]]; then
+    SECRETS_SVC="$DATA_HOME/dbus-1/services/org.freedesktop.secrets.service"
+    if [[ ! -e "$SECRETS_SVC" ]]; then
+        run mkdir -p "$(dirname "$SECRETS_SVC")"
+        ((DRY)) || printf '# hyprland-desktop: contraseñas en KWallet (como en Plasma)\n[D-BUS Service]\nName=org.freedesktop.secrets\nExec=/usr/bin/ksecretd\n' > "$SECRETS_SVC"
+        record "created" "$SECRETS_SVC" ""
+        ok "Servicio de contraseñas: KWallet"
+    fi
+    # Navegadores Chromium/Electron no detectan KWallet fuera de Plasma: se fuerza
+    if [[ -x /usr/bin/brave ]] && ! grep -qs 'password-store' "$CONFIG_HOME/brave-flags.conf"; then
+        ((DRY)) || echo '--password-store=kwallet6' >> "$CONFIG_HOME/brave-flags.conf"
+        ok "Brave usará KWallet ($CONFIG_HOME/brave-flags.conf)"
+    fi
+    if [[ -x /usr/bin/teams-for-linux && ! -e "$CONFIG_HOME/teams-for-linux/config.json" ]]; then
+        run mkdir -p "$CONFIG_HOME/teams-for-linux"
+        ((DRY)) || printf '{\n  "performance": {\n    "electronCLIFlags": [["password-store", "kwallet6"]]\n  }\n}\n' > "$CONFIG_HOME/teams-for-linux/config.json"
+        record "created" "$CONFIG_HOME/teams-for-linux/config.json" ""
+        ok "Teams usará KWallet"
     fi
 fi
 

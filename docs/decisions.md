@@ -77,3 +77,13 @@ Probado en esta máquina (sesión KDE Wayland, Eww 0.6 ejecutado localmente sin 
 - Conexión a una red Wi-Fi nueva con contraseña (`nmcli --ask`).
 - Cursor por hardware con NVIDIA: si hay parpadeos, añadir `cursor = { no_hardware_cursors = true }`
   en `modules/look.lua`.
+
+## Credenciales (KWallet)
+
+En Plasma el servicio de contraseñas (`org.freedesktop.secrets`) lo da KWallet: el PAM de SDDM
+arranca `ksecretd` con la contraseña de inicio de sesión y el autoarranque `pam_kwallet_init` lo
+conecta al bus. Hyprland no ejecuta ese autoarranque, así que D-Bus activaba gnome-keyring (vacío)
+y Brave, Teams o `gh` parecían haber perdido sus credenciales (seguían en `kdewallet.kwl`).
+Solución: `modules/autostart.lua` ejecuta `pam_kwallet_init`, el instalador registra `ksecretd`
+como `org.freedesktop.secrets` para el usuario, y Brave/Teams reciben `--password-store=kwallet6`
+(Chromium/Electron solo eligen KWallet por sí mismos si el escritorio se llama KDE).
