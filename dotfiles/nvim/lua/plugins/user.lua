@@ -6,6 +6,8 @@
 
 ---@type LazySpec
 return {
+  -- Mostrar los errores mientras se escribe (AstroNvim los aplaza hasta volver a modo normal)
+  { "AstroNvim/astrocore", opts = { diagnostics = { update_in_insert = true } } },
     {
       "codegik/claude-chat.nvim",
       cmd = { "ClaudeChat", "ClaudeChatReset", "ClaudeChatFile", "ClaudeChatContinue", "ClaudeChatSessions" },
