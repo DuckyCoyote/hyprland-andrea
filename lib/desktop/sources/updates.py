@@ -4,7 +4,9 @@
   la del sistema ni requiere root) y con el helper AUR instalado (`paru -Qua`/`yay -Qua`).
 - Resultado en caché; se vuelve a consultar según updates.refresh_minutes y cuando cambia
   /var/lib/pacman/local (es decir, tras cualquier transacción de pacman).
-- Nunca actualiza en silencio: `update` abre una terminal interactiva.
+- Nunca actualiza en silencio: `update` abre una terminal interactiva con el actualizador de la
+  distribución (`garuda-update` en Garuda, sin --aur: los paquetes del AUR solo se listan) o, si
+  no existe, con el helper AUR / `pacman -Syu`. Configurable con updates.command.
 """
 import asyncio
 import json
@@ -27,6 +29,17 @@ def aur_helper(preferred: str) -> str:
     return next((h for h in ("paru", "yay") if have(h)), "")
 
 
+def upgrade_command(settings: dict) -> str:
+    """Orden de actualización completa (se ejecuta en una terminal interactiva)."""
+    custom = settings.get("updates", {}).get("command", "auto")
+    if custom not in ("", "auto"):
+        return custom
+    if have("garuda-update"):
+        return "garuda-update"
+    helper = aur_helper(settings.get("updates", {}).get("aur_helper", "auto"))
+    return f"{helper} -Syu" if helper else "sudo pacman -Syu"
+
+
 class UpdatesSource(Source):
     topic = "updates"
 
@@ -43,7 +56,7 @@ class UpdatesSource(Source):
         self.publish({
             "count": len(pk), "packages": pk, "status": self.status, "error": self.data.get("error", ""),
             "checked": time.strftime("%H:%M", time.localtime(checked)) if checked else "nunca",
-            "aur_helper": aur_helper(config.load().get("updates", {}).get("aur_helper", "auto")),
+            "updater": upgrade_command(config.load()).split()[0],
             "available": have("checkupdates"),
         })
 
@@ -90,12 +103,12 @@ class UpdatesSource(Source):
                 p = _parse(line)
                 if p:
                     repo = repo_of.get(p["name"], "")
-                    packages.append({**p, "repo": repo, "origin": "oficial" if repo in OFFICIAL else (repo or "repo")})
+                    packages.append({**p, "repo": repo or "pacman", "origin": "pacman"})
             for line in aur_out.splitlines():
                 p = _parse(line)
                 if p and not line.endswith("[ignored]"):
                     packages.append({**p, "repo": "aur", "origin": "aur"})
-            packages.sort(key=lambda p: (p["origin"] != "oficial", p["name"]))
+            packages.sort(key=lambda p: (p["origin"] != "pacman", p["name"]))
             self.data = {"packages": packages, "checked": time.time(), "error": error}
             config.write_json(self.cache, self.data)
             self.status = "idle"
@@ -107,8 +120,7 @@ class UpdatesSource(Source):
 
     async def cmd_update(self) -> str:
         settings = config.load()
-        helper = aur_helper(settings.get("updates", {}).get("aur_helper", "auto"))
-        upgrade = f"{helper} -Syu" if helper else "sudo pacman -Syu"
+        upgrade = upgrade_command(settings)
         inner = (f"echo 'hyprland-desktop: {upgrade}'; {upgrade}; s=$?; echo; "
                  f"echo \"Terminado (código $s). Pulsa Enter para cerrar.\"; read _")
         marker = paths.RUNTIME_DIR / "updating"

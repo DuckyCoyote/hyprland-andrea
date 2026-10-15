@@ -18,14 +18,15 @@
       (box :class "card list" :orientation "v" :space-evenly false
         (for p in {updates.packages ?: []}
           (box :class "pkg-row" :space-evenly false :spacing 10
-            (label :class "glyph c-${p.origin == 'aur' ? 'mauve' : p.origin == 'oficial' ? 'blue' : 'teal'}" :text "󰏗")
+            (label :class "glyph c-${p.origin == 'aur' ? 'mauve' : 'blue'}" :text "󰏗")
             (label :class "pkg-name" :halign "start" :hexpand true :limit-width 22 :text {p.name} :tooltip {p.name})
             (label :class "pkg-version" :limit-width 30 :text "${p.old} → ${p.new}" :tooltip "${p.old} → ${p.new}")
-            (badge :text {p.origin} :kind {p.origin == "aur" ? "aur" : p.origin == "oficial" ? "official" : "other"})))))
+            (box :tooltip {p.origin == "aur" ? "AUR" : "Repositorio: ${p.repo}"}
+              (badge :text {p.origin} :kind {p.origin == "aur" ? "aur" : "official"}))))))
     (label :class "status-line ${updates.error != '' ? 'error' : ''}" :halign "start" :wrap true
            :text {updates.error != "" ? updates.error :
                   updates.status == "updating" ? "Actualización en curso en la terminal…" :
-                  "Última comprobación: ${updates.checked ?: 'nunca'}${updates.aur_helper != '' ? ' · AUR: ' + updates.aur_helper : ''}"})
+                  "Última comprobación: ${updates.checked ?: 'nunca'} · Se actualiza con ${updates.updater ?: 'pacman'}"})
     (box :class "actions" :space-evenly true :spacing 10
       (text-button :label "Ver cambios" :icon "󰈈" :onclick "desktopctl updates changes" :hexpand true)
       (text-button :label {updates.status == "updating" ? "Actualizando…" : "Actualizar"} :icon "󰚰" :kind "primary" :hexpand true

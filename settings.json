@@ -57,7 +57,8 @@
 
   "updates": {
     "refresh_minutes": 60,
-    "aur_helper": "auto"
+    "aur_helper": "auto",
+    "command": "auto"
   },
 
   "idle": {

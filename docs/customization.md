@@ -14,6 +14,7 @@ desktopctl apply
 | `monitors` | salida, modo, posición, escala, `primary` |
 | `wallpaper` / `wallpaper_dir` | fondo inicial y carpeta que lee el selector de fondos (vacío = `~/Imágenes/Wallpapers`). El fondo y el cursor elegidos en Configuración → Apariencia se guardan en `appearance.json` y persisten entre sesiones |
 | `nvim.sync_theme` | Neovim (monokai-pro) sigue el tema global con el fondo de kitty; `false` = tema original de Neovim |
+| `updates.command` | orden del botón «Actualizar»: `auto` = `garuda-update` (solo repositorios; los paquetes del AUR se listan pero no se actualizan) o, fuera de Garuda, el helper AUR / `pacman -Syu` |
 | `bar.modules` / `bar.per_monitor` | qué grupos muestra la barra y en qué monitor (`window` = icono de la ventana enfocada, junto a los accesos rápidos tras un separador) |
 | `workspaces.per_monitor` | número de espacios visibles por monitor |
 | `keyboard`, `input` | distribución, variante, sensibilidad, desplazamiento natural |
