@@ -170,12 +170,13 @@ class Hyprland(WindowManager):
                                 f"movetoworkspace {active.get('id', 1)},address:{address}")
         await self.dispatch(f"hl.dsp.focus({{ window = {sel} }})", f"focuswindow address:{address}")
 
-    async def count_layers(self, namespace: str) -> int | None:
+    async def layers_per_monitor(self, namespace: str) -> dict[str, int] | None:
         layers = await self.query("layers")
         if not isinstance(layers, dict):
             return None
-        return sum(1 for mon in layers.values() for level in mon.get("levels", {}).values()
-                   for layer in level if layer.get("namespace") == namespace)
+        return {name: sum(1 for level in mon.get("levels", {}).values()
+                          for layer in level if layer.get("namespace") == namespace)
+                for name, mon in layers.items()}
 
     async def set_cursor(self, theme: str, size: int) -> None:
         await self.request(f"/setcursor {theme} {int(size)}")

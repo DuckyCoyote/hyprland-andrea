@@ -62,6 +62,11 @@ class WindowManager:
 
     async def count_layers(self, namespace: str) -> int | None:
         """Número de superficies layer-shell con ese namespace (None si no se puede saber)."""
+        per_monitor = await self.layers_per_monitor(namespace)
+        return None if per_monitor is None else sum(per_monitor.values())
+
+    async def layers_per_monitor(self, namespace: str) -> dict[str, int] | None:
+        """{monitor: superficies layer-shell con ese namespace} (None si no se puede saber)."""
         return None
 
     async def set_cursor(self, theme: str, size: int) -> None:

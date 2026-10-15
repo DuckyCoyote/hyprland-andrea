@@ -23,7 +23,7 @@ class WmSource(Source):
         self._icon_names: dict[str, str] | None = None
         self._icons = None
         self._icon_cache: dict[str, str] = {}
-        self._last_restart = 0.0
+        self._restarts: list[float] = []
         self._refresh = Debouncer(0.03, self.refresh)
         self._monitors_changed = Debouncer(0.5, self.sync_bars)
 
@@ -174,25 +174,34 @@ class WmSource(Source):
                                         {"monitor": mon["name"], "modules": modules})
         self.bars = set(wanted)
 
-        # Red de seguridad: si Eww dejó barras huérfanas (superficies que ya no controla), solo
-        # reiniciarlo las elimina. Se comprueba dos veces (las superficies de una recarga tardan
-        # un instante en desaparecer) y como mucho una vez por minuto, para no entrar en bucle.
-        if retry and await self._too_many_bars(len(wanted)):
+        # Red de seguridad: si Eww dejó barras huérfanas (superficies que ya no controla) o abrió
+        # alguna en otro monitor (al iniciar sesión GTK puede no conocer aún todos los monitores y
+        # acababan dos barras en una pantalla y ninguna en la otra), solo reiniciarlo lo arregla.
+        # Se comprueba dos veces (las superficies de una recarga tardan un instante en
+        # desaparecer) y como mucho tres reinicios por minuto, para no entrar en bucle.
+        if retry and await self._bars_misplaced(wanted):
             await asyncio.sleep(2)
-            if await self._too_many_bars(len(wanted)) and time.monotonic() - self._last_restart > 60:
-                self._last_restart = time.monotonic()
-                log("barras huérfanas de Eww: reiniciando Eww")
+            now = time.monotonic()
+            self._restarts = [t for t in self._restarts if now - t < 60]
+            if await self._bars_misplaced(wanted) and len(self._restarts) < 3:
+                self._restarts.append(now)
+                log("barras huérfanas o en otro monitor: reiniciando Eww")
                 await asyncio.to_thread(eww.restart_daemon)
                 for _ in range(30):  # esperar a que el compositor retire las superficies viejas
                     if not await self.wm.count_layers("hd-bar"):
                         break
                     await asyncio.sleep(0.1)
-                await self._sync_bars(retry=False)
+                await self._sync_bars(retry=len(self._restarts) < 3)
                 await self.hub.sources["popup"].reset()
 
-    async def _too_many_bars(self, expected: int) -> bool:
-        layers = await self.wm.count_layers("hd-bar")
-        return layers is not None and layers > expected
+    async def _bars_misplaced(self, wanted: dict) -> bool:
+        """True si algún monitor no tiene exactamente una barra (o sobran barras)."""
+        layers = await self.wm.layers_per_monitor("hd-bar")
+        if layers is None:
+            return False
+        monitors = {mon["name"] for mon, _ in wanted.values()}
+        return (any(layers.get(name, 0) != 1 for name in monitors)
+                or sum(layers.values()) > len(monitors))
 
     async def reload_eww(self) -> None:
         """Recarga Eww (tras regenerar estilos) y restablece barras y popup abierto."""
