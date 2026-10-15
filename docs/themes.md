@@ -63,6 +63,6 @@ Para soportar otro programa (p. ej. rofi o GTK), añade una función a `render.p
   fondo idéntico al de kitty. El plugin `config/nvim/hyprland-desktop.lua` (enlazado en
   `~/.config/nvim/lua/plugins/`) solo sustituye `override_palette`: las cursivas y demás ajustes se
   conservan, y las instancias abiertas cambian de tema al momento. Un tema con
-  `"nvim": { "backgrounds_only": true }` (el monocromo) solo cambia los fondos del editor y del
+  `"nvim": { "backgrounds_only": true }` (Mocha y el monocromo) solo cambia los fondos del editor y del
   explorador y mantiene los colores originales de Neovim. Con
   `"nvim": { "sync_theme": false }` Neovim vuelve a su tema original.

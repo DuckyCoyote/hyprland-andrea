@@ -1,6 +1,7 @@
 {
   "name": "Catppuccin Mocha",
   "variant": "dark",
+  "nvim": { "backgrounds_only": true },
   "palette": {
     "rosewater": "#f5e0dc",
     "flamingo": "#f2cdcd",
