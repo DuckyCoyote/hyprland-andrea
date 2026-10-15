@@ -123,11 +123,13 @@ local binds = {
     { M .. " + mouse:272",     "Mover ventana con el ratón",             dsp.window.drag(),   { mouse = true } },
     { M .. " + mouse:273",     "Redimensionar con el ratón",             dsp.window.resize(), { mouse = true } },
 
-    "Capturas",
+    "Capturas", -- submap_universal: también con un popup abierto (submapas hd-popup, hd-power…)
     { M .. " + SHIFT + S",     "Captura de una región",
-        exec(screenshot .. [[grim -g "$(slurp)" "$f" && wl-copy < "$f" && notify-send -i "$f" "Captura guardada" "$f"']]) },
+        exec(screenshot .. [[grim -g "$(slurp)" "$f" && wl-copy < "$f" && notify-send -i "$f" "Captura guardada" "$f"']]),
+        { submap_universal = true } },
     { "Print",                 "Captura de pantalla completa",
-        exec(screenshot .. [[grim "$f" && wl-copy < "$f" && notify-send -i "$f" "Captura guardada" "$f"']]) },
+        exec(screenshot .. [[grim "$f" && wl-copy < "$f" && notify-send -i "$f" "Captura guardada" "$f"']]),
+        { submap_universal = true } },
 
     "Multimedia", -- también funcionan con la pantalla bloqueada
     { "XF86AudioRaiseVolume",  "Subir volumen",   exec("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true } },
