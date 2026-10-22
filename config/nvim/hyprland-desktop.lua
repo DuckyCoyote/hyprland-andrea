@@ -12,4 +12,7 @@ return {
         dependencies = { "loctvl842/monokai-pro.nvim" },
         config = function() require("hyprland_desktop").setup() end,
     },
+    -- Colorschemes que usan tal cual los temas con "nvim": { "colorscheme": … } (lazy.nvim los
+    -- carga al pedir el colorscheme)
+    { "AlexvZyl/nordic.nvim", lazy = true },
 }

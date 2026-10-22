@@ -1,0 +1,33 @@
+{
+  "name": "Gruvbox claro",
+  "variant": "light",
+  "accent": "red",
+  "palette": {
+    "rosewater": "#665c54",
+    "flamingo": "#d65d0e",
+    "pink": "#b16286",
+    "mauve": "#8f3f71",
+    "red": "#9d0006",
+    "maroon": "#cc241d",
+    "peach": "#af3a03",
+    "yellow": "#b57614",
+    "green": "#79740e",
+    "teal": "#427b58",
+    "sky": "#689d6a",
+    "sapphire": "#458588",
+    "blue": "#076678",
+    "lavender": "#7c6f64",
+    "text": "#3c3836",
+    "subtext1": "#504945",
+    "subtext0": "#5a524c",
+    "overlay2": "#665c54",
+    "overlay1": "#7c6f64",
+    "overlay0": "#928374",
+    "surface2": "#a89984",
+    "surface1": "#bdae93",
+    "surface0": "#d5c4a1",
+    "base": "#fbf1c7",
+    "mantle": "#f2e5bc",
+    "crust": "#ebdbb2"
+  }
+}

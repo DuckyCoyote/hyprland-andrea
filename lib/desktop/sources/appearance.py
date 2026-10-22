@@ -43,7 +43,8 @@ class AppearanceSource(Source):
         themes = []
         for tid, t in config.themes().items():
             p = t["palette"]
-            themes.append({"id": tid, "name": t["name"].replace("Catppuccin ", ""), "variant": t.get("variant", "dark"),
+            themes.append({"id": tid, "name": t["name"].replace("Catppuccin ", ""), "title": t["name"],
+                           "variant": t.get("variant", "dark"),
                            "bg": p["base"], "fg": p["text"], "c1": p["red"], "c2": p["mauve"], "c3": p["blue"],
                            "selected": tid == ctx["theme_id"]})
         ap = ctx["ap"]
@@ -53,6 +54,7 @@ class AppearanceSource(Source):
             **{k: bool(render._bool(ap.get(k))) for k in BOOL_KEYS},
             "theme": ctx["theme_id"], "accent": ctx["accent_name"],
             "themes": themes,
+            "theme_rows": _rows(themes, 4),
             "accents": [{"name": a, "hex": ctx["pal"][a], "selected": a == ctx["accent_name"]} for a in ACCENTS if a in ctx["pal"]],
             "fonts": self.fonts or [ap.get("font_family", "")],
             "wallpaper": render.wallpaper_path(ctx),
@@ -91,9 +93,17 @@ class AppearanceSource(Source):
         elif key == "opacity":
             val = max(0.5, min(1.0, float(value) / 100 if float(value) > 1 else float(value)))
         elif key == "theme":
-            if value not in config.themes():
+            themes = config.themes()
+            if value not in themes:
                 return f"tema desconocido: {value}"
             val = value
+            # Un tema puede traer su acento ("accent": "red" en Gruvbox); al salir de él se vuelve
+            # al acento de settings.json si no se cambió entretanto.
+            old_default = themes.get(current.get("theme", ""), {}).get("accent")
+            if themes[value].get("accent"):
+                config.set_appearance("accent", themes[value]["accent"])
+            elif old_default and current.get("accent") == old_default:
+                config.set_appearance("accent", config.default_appearance().get("accent", "mauve"))
         elif key == "font_family":
             # el combo de Eww emite un valor vacío al crearse: se ignora
             if not value.strip() or (self.fonts and value not in self.fonts):
@@ -172,6 +182,7 @@ def _rows(items: list, size: int) -> list:
         # Eww evalúa las expresiones aunque el widget esté oculto y un null rompe el render)
         blank = str(paths.ASSETS_DIR / "icons" / "blank.png")
         hole = {"placeholder": True, "selected": False, "name": "", "label": "", "path": "",
-                "thumb": blank, "preview": blank}
+                "thumb": blank, "preview": blank, "id": "", "title": "", "bg": "#000000", "c1": "#000000",
+                "c2": "#000000", "c3": "#000000"}
         rows[-1] += [dict(hole) for _ in range(size - len(rows[-1]))]
     return rows

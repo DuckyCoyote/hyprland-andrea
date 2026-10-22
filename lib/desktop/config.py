@@ -77,7 +77,7 @@ def reset_appearance() -> None:
 def themes() -> dict:
     """Temas disponibles: los del repositorio y los añadidos por el usuario en ~/.config/hyprland-desktop/themes."""
     found = {}
-    order = ["mocha", "macchiato", "frappe", "latte", "mono"]
+    order = ["mocha", "macchiato", "frappe", "latte", "mono", "mono-light", "gruvbox-dark", "gruvbox-light", "nordic"]
     for directory in (paths.THEMES_DIR, paths.USER_THEMES_DIR):
         if not directory.is_dir():
             continue

@@ -31,6 +31,12 @@ tocar el repositorio, en `~/.config/hyprland-desktop/themes/`:
   iconos conserven su color.
 - `kitty.text_palette` (opcional): id del tema del que kitty toma los colores del texto (primer
   plano y paleta ANSI) manteniendo los fondos propios. El monocromo usa `"mocha"`.
+- `system` (opcional): id del tema que usa todo lo que no es la barra ni los widgets (bordes de
+  Hyprland, kitty, Neovim, preferencia clara/oscura de GTK y color de fondo sin imagen), con sus
+  propias opciones `kitty`/`nvim`. El acento elegido se toma por nombre de esa paleta.
+  «Monocromático claro» (`mono-light`) usa `"system": "mono"`: barra clara y sistema oscuro.
+- `accent` (opcional): acento que se activa al elegir el tema (Gruvbox usa `"red"`). Se puede
+  cambiar después en el selector; al volver a un tema sin acento propio se recupera el de settings.json.
 - `base`/`mantle`/`crust`: fondos de mayor a menor luminosidad (en temas claros, al revés que
   el texto). `surface*`: tarjetas y bordes. `overlay*`/`subtext*`: textos secundarios.
 - Los 14 colores con nombre se ofrecen como acentos en el selector.
@@ -47,6 +53,7 @@ Aparece automáticamente en el selector. Para activarlo: `desktopctl appearance 
 | Hyprland | `config/hypr/generated/theme.lua` |
 | hyprlock | `config/hypr/hyprlock.conf` |
 | kitty | `config/kitty/theme.conf` |
+| Neovim | `config/nvim/lua/hyprland_desktop/palette.lua` |
 
 Para soportar otro programa (p. ej. rofi o GTK), añade una función a `render.py` y su ruta en
 `targets()`.
@@ -66,3 +73,11 @@ Para soportar otro programa (p. ej. rofi o GTK), añade una función a `render.p
   `"nvim": { "backgrounds_only": true }` (Mocha y el monocromo) solo cambia los fondos del editor y del
   explorador y mantiene los colores originales de Neovim. Con
   `"nvim": { "sync_theme": false }` Neovim vuelve a su tema original.
+  Un tema con `"nvim": { "colorscheme": "<nombre>" }` usa ese colorscheme tal cual en lugar de
+  monokai-pro (Nordic usa [nordic.nvim](https://github.com/AlexvZyl/nordic.nvim)); el plugin se
+  declara en `config/nvim/hyprland-desktop.lua` y lazy.nvim lo carga al pedirlo.
+
+Temas incluidos: Catppuccin (Mocha, Macchiato, Frappé, Latte), Monocromático (oscuro), Monocromático
+claro (barra clara + sistema monocromo oscuro), Gruvbox (oscuro y claro, con los acentos «faded»
+en el claro) y Nordic (paleta de [nordic.nvim](https://github.com/AlexvZyl/nordic.nvim), acento `sky`). Las aplicaciones Qt/KDE no se tiñen: siguen el esquema de `~/.config/kdeglobals`
+(compartido con la sesión de Plasma).

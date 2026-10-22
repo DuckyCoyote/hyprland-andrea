@@ -4,6 +4,8 @@
 -- (override_palette) con la que genera `desktopctl apply` en palette.lua, de modo que el
 -- fondo de Neovim es exactamente el de kitty. Las cursivas y demás `override` se conservan.
 -- Si settings.json tiene "nvim": { "sync_theme": false }, Neovim queda con su tema original.
+-- Un tema con "nvim": { "colorscheme": "<nombre>" } (Nordic) usa ese colorscheme tal cual, sin
+-- pasar por monokai-pro; el plugin correspondiente se declara en hyprland-desktop.lua.
 
 local M = {}
 
@@ -18,6 +20,11 @@ end
 function M.apply()
     local data = read_palette()
     if not data or not data.enabled then return end
+    if data.colorscheme then
+        vim.o.background = data.dark and "dark" or "light"
+        pcall(vim.cmd.colorscheme, data.colorscheme)
+        return
+    end
     local ok, config = pcall(require, "monokai-pro.config")
     if not ok then return end
     -- La paleta original del usuario se guarda una vez y se usa como base: los temas que solo
@@ -36,6 +43,12 @@ function M.apply()
         end,
     })
     vim.cmd.colorscheme("monokai-pro")
+    -- Las guías de sangría de snacks (SnacksIndent) enlazan con NonText, que monokai-pro pinta
+    -- del color del fondo: se les da el gris de los separadores para que se vean.
+    local merged = vim.tbl_extend("force", original and original(data.dark and "pro" or "light") or {}, palette)
+    if merged.dimmed3 then
+        vim.api.nvim_set_hl(0, "SnacksIndent", { fg = merged.dimmed3, nocombine = true })
+    end
 end
 
 -- Recarga en caliente: el generador reemplaza palette.lua de forma atómica (rename),

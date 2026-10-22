@@ -67,17 +67,22 @@
 (defwidget settings-appearance []
   (box :orientation "v" :space-evenly false :spacing 10
     (section-title :text "Tema")
-    (box :class "theme-cards" :space-evenly true :spacing 8
-      (for t in {appearance.themes ?: []}
-        (eventbox :cursor "pointer"
-          (button :class "theme-card ${t.selected ? 'selected' : ''}" :onclick "desktopctl appearance set theme ${t.id}"
-                  :tooltip "Catppuccin ${t.name}"
-            (box :orientation "v" :space-evenly false :spacing 6
-              (box :class "theme-preview" :style "background-color: ${t.bg};" :space-evenly true
-                (box :class "swatch" :style "background-color: ${t.c1};")
-                (box :class "swatch" :style "background-color: ${t.c2};")
-                (box :class "swatch" :style "background-color: ${t.c3};"))
-              (label :class "theme-name" :text {t.name}))))))
+    ;; Filas de 4 en un scroll vertical: con muchos temas la ventana no crece a lo ancho
+    (scroll :class "theme-cards" :vscroll true :hscroll false :height 170
+      (box :orientation "v" :space-evenly false :spacing 8
+        (for row in {appearance.theme_rows ?: []}
+          (box :space-evenly true :spacing 8
+            (for t in row
+              (box
+              (eventbox :cursor "pointer" :visible {!(t.placeholder ?: false)}
+                (button :class "theme-card ${t.selected ? 'selected' : ''}" :onclick "desktopctl appearance set theme ${t.id}"
+                        :tooltip {t.title}
+                  (box :orientation "v" :space-evenly false :spacing 6
+                    (box :class "theme-preview" :style "background-color: ${t.bg};" :space-evenly true
+                      (box :class "swatch" :style "background-color: ${t.c1};")
+                      (box :class "swatch" :style "background-color: ${t.c2};")
+                      (box :class "swatch" :style "background-color: ${t.c3};"))
+                    (label :class "theme-name" :limit-width 18 :text {t.name}))))))))))
     (section-title :text "Paleta de colores (acento)")
     (box :class "accent-row" :space-evenly false :spacing 8
       (for a in {appearance.accents ?: []}

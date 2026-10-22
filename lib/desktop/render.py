@@ -34,8 +34,21 @@ def context() -> dict:
     accent_name = ap.get("accent", "mauve") if ap.get("accent") in pal else "mauve"
     # Un tema puede tomar los colores de los iconos de otro (el monocromo conserva los de Mocha)
     icon_pal = themes.get(theme.get("icon_palette", ""), {}).get("palette", pal)
+    # La barra y los widgets usan el tema elegido; el resto del sistema (bordes de Hyprland, kitty,
+    # Neovim, GTK) puede usar otro con "system": "<tema>" (p. ej. barra clara y sistema oscuro).
+    sys_id = theme.get("system") if theme.get("system") in themes else theme_id
+    sys_theme = themes[sys_id]
+    sys_pal = sys_theme["palette"]
+    system = {"theme_id": sys_id, "theme": sys_theme, "pal": sys_pal,
+              "accent": sys_pal.get(accent_name, sys_pal["mauve"]), "dark": sys_theme.get("variant", "dark") != "light"}
     return {"settings": settings, "ap": ap, "theme_id": theme_id, "theme": theme, "pal": pal, "icon_pal": icon_pal,
-            "accent": pal[accent_name], "accent_name": accent_name, "dark": theme.get("variant", "dark") != "light"}
+            "accent": pal[accent_name], "accent_name": accent_name, "dark": theme.get("variant", "dark") != "light",
+            "system": system}
+
+
+def system_ctx(ctx: dict) -> dict:
+    """Contexto con la paleta del sistema en lugar de la de la barra."""
+    return {**ctx, **ctx["system"]}
 
 
 def _hex(c: str) -> str:
@@ -93,6 +106,7 @@ def _lua(value, indent: int = 0) -> str:
 
 
 def hypr_theme(ctx: dict) -> str:
+    ctx = system_ctx(ctx)
     ap, pal = ctx["ap"], ctx["pal"]
     spacing = int(ap.get("spacing", 8))
     opacity = float(ap.get("opacity", 0.92)) if _bool(ap.get("transparency", False)) else 1.0
@@ -218,6 +232,7 @@ general {{
 # --------------------------------------------------------------------------- kitty
 
 def kitty(ctx: dict) -> str:
+    ctx = system_ctx(ctx)
     p, dark = ctx["pal"], ctx["dark"]
     # Colores del texto (primer plano y paleta ANSI): un tema puede tomarlos de otro con
     # "kitty": {"text_palette": "<tema>"}; los fondos siguen siendo los del tema propio.
@@ -293,6 +308,7 @@ def _pill(bg: str, fg: str, num_bg: str, num_fg: str) -> str:
 def nvim_palette(ctx: dict) -> str:
     """Paleta para monokai-pro (override_palette) con el mismo reparto de colores que la
     configuración de Neovim del usuario y el fondo idéntico al de kitty."""
+    ctx = system_ctx(ctx)
     p = ctx["pal"]
     sync = ctx["settings"].get("nvim", {}).get("sync_theme", True)
     palette = {
@@ -306,7 +322,11 @@ def nvim_palette(ctx: dict) -> str:
     # editor y del explorador; el resto de colores son los de la configuración original de Neovim.
     if ctx["theme"].get("nvim", {}).get("backgrounds_only"):
         palette = {k: palette[k] for k in ("dark2", "dark1", "background", "dimmed5")}
-    return f"-- {HEADER}\nreturn {_lua({'enabled': bool(sync), 'theme': ctx['theme_id'], 'dark': ctx['dark'], 'palette': palette})}\n"
+    data = {'enabled': bool(sync), 'theme': ctx['theme_id'], 'dark': ctx['dark'], 'palette': palette}
+    # "nvim": {"colorscheme": "nordic"}: Neovim usa ese colorscheme original en vez de monokai-pro
+    if ctx["theme"].get("nvim", {}).get("colorscheme"):
+        data["colorscheme"] = ctx["theme"]["nvim"]["colorscheme"]
+    return f"-- {HEADER}\nreturn {_lua(data)}\n"
 
 
 # --------------------------------------------------------------------------- aplicar
@@ -366,7 +386,7 @@ def reload_external(ctx: dict, changed: list[Path]) -> None:
         _quiet("pkill", "-USR1", "-x", "kitty")  # kitty recarga su configuración con SIGUSR1
     if have("gsettings"):
         _quiet("gsettings", "set", "org.gnome.desktop.interface", "color-scheme",
-               "prefer-dark" if ctx["dark"] else "prefer-light")
+               "prefer-dark" if ctx["system"]["dark"] else "prefer-light")
     set_wallpaper(ctx)
 
 
@@ -383,7 +403,7 @@ def set_wallpaper(ctx: dict | None = None) -> None:
     if wall and Path(wall).expanduser().is_file():
         _quiet("awww", "img", str(Path(wall).expanduser()), "--transition-type", "fade", "--transition-duration", "0.6")
     else:
-        _quiet("awww", "clear", _hex(ctx["pal"]["crust"]))
+        _quiet("awww", "clear", _hex(ctx["system"]["pal"]["crust"]))
 
 
 def font_families() -> list[str]:
