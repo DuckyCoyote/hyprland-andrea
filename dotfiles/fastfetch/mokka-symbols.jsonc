@@ -1,0 +1,85 @@
+// Variante de mokka con el gato dibujado con símbolos (mokka-symbols.txt,
+// generado por mokka-symbols.py) y solo la información principal.
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "logo": {
+    "type": "file",
+    "source": "~/.config/fastfetch/mokka-symbols.txt",
+    "padding": {
+      "top": 0,
+      "right": 2
+    },
+    "color": {
+      "1": "38;5;210",
+      "2": "38;5;216",
+      "3": "38;5;223",
+      "4": "38;5;151",
+      "5": "38;5;117",
+      "6": "38;5;183",
+      "7": "38;5;189",
+      "8": "38;5;217"
+    }
+  },
+  "display": {
+    "separator": " "
+  },
+  "modules": [
+    {
+      "type": "title"
+    },
+    {
+      "type": "os",
+      "key": " OS",
+      "keyColor": "yellow",
+      "keyWidth": 12
+    },
+    {
+      "type": "kernel",
+      "key": " Kernel",
+      "keyColor": "yellow",
+      "keyWidth": 12
+    },
+    {
+      "type": "packages",
+      "key": "󰏖 Paquetes",
+      "keyColor": "yellow",
+      "keyWidth": 12
+    },
+    {
+      "type": "shell",
+      "key": " Shell",
+      "keyColor": "yellow",
+      "keyWidth": 12
+    },
+    {
+      "type": "wm",
+      "key": "󰧨 WM",
+      "keyColor": "blue",
+      "keyWidth": 12
+    },
+    {
+      "type": "terminal",
+      "key": " Terminal",
+      "keyColor": "blue",
+      "keyWidth": 12
+    },
+    {
+      "type": "cpu",
+      "key": "󰻠 CPU",
+      "keyColor": "green",
+      "keyWidth": 12
+    },
+    {
+      "type": "gpu",
+      "key": "󰍛 GPU",
+      "keyColor": "green",
+      "keyWidth": 12
+    },
+    {
+      "type": "memory",
+      "key": "󰍛 Memoria",
+      "keyColor": "green",
+      "keyWidth": 12
+    }
+  ]
+}

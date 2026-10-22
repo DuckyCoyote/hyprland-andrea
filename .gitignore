@@ -7,3 +7,5 @@ config/kitty/theme.conf
 *.tmp
 __pycache__/
 config/nvim/lua/hyprland_desktop/palette.lua
+dotfiles/fish/fish_variables
+dotfiles/fish/conf.d/local.fish

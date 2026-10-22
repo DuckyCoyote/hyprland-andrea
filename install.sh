@@ -88,6 +88,7 @@ DEPS=(
     "wl-clipboard:portapapeles"
     "brightnessctl:brillo"
     "ttf-jetbrains-mono-nerd:fuente con iconos"
+    "ttf-cascadia-code-nerd:fuente de kitty (CaskaydiaCove)"
     "xdg-user-dirs:carpetas de usuario"
 )
 REPO_PKGS=(); AUR_PKGS=(); UNKNOWN=()
@@ -194,6 +195,38 @@ elif ((!YES)) && ask "¿Usar la configuración de Neovim incluida (AstroNvim, do
     run ln -s "$ROOT/dotfiles/nvim" "$NVIM_DIR"
     record "link" "$NVIM_DIR" "$ROOT/dotfiles/nvim"
     ok "$NVIM_DIR → $ROOT/dotfiles/nvim (los plugins se instalan al abrir nvim)"
+fi
+
+# fish incluido (dotfiles/fish + starship + fastfetch): opcional y, como Neovim, nunca solo con --yes.
+# Los valores privados (MINIMAX_API_KEY…) van en ~/.config/fish/conf.d/local.fish, que no está en git.
+FISH_DIR="$CONFIG_HOME/fish"
+if [[ -L "$FISH_DIR" && "$(readlink -f "$FISH_DIR")" == "$(readlink -f "$ROOT/dotfiles/fish")" ]]; then
+    ok "$FISH_DIR ya apunta al proyecto"
+elif ((!YES)) && ask "¿Usar la configuración de fish incluida (dotfiles/fish, starship, fastfetch)?"; then
+    SHELL_PKGS=()
+    for pkg in fish starship eza bat ugrep fastfetch expac; do
+        pacman -Qq "$pkg" &>/dev/null || SHELL_PKGS+=("$pkg")
+    done
+    if ((${#SHELL_PKGS[@]})) && ask "¿Instalar ${SHELL_PKGS[*]} con 'sudo pacman -S --needed'?"; then
+        run sudo pacman -S --needed "${SHELL_PKGS[@]}"
+    fi
+    # el local.fish de una configuración anterior se conserva
+    OLD_LOCAL="$FISH_DIR/conf.d/local.fish"
+    [[ -f "$OLD_LOCAL" && ! -L "$FISH_DIR" ]] && run cp "$OLD_LOCAL" "$ROOT/dotfiles/fish/conf.d/local.fish"
+    for pair in "$FISH_DIR|$ROOT/dotfiles/fish" \
+                "$CONFIG_HOME/starship.toml|$ROOT/dotfiles/starship.toml" \
+                "$CONFIG_HOME/fastfetch|$ROOT/dotfiles/fastfetch"; do
+        target="${pair%%|*}"; source="${pair#*|}"
+        [[ -L "$target" && "$(readlink -f "$target")" == "$(readlink -f "$source")" ]] && continue
+        [[ -e "$target" || -L "$target" ]] && backup "$target"
+        run ln -s "$source" "$target"
+        record "link" "$target" "$source"
+        ok "$target → $source"
+    done
+    if [[ "$(getent passwd "$USER" | cut -d: -f7)" != */fish ]] && command -v fish >/dev/null \
+            && ask "¿Usar fish como shell predeterminada (chsh pedirá tu contraseña)?"; then
+        run chsh -s "$(command -v fish)"
+    fi
 fi
 
 # Neovim: si usa monokai-pro, se añade un plugin (enlace) que sincroniza su paleta con el tema
