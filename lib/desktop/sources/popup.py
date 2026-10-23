@@ -7,6 +7,7 @@
 - Activa en el compositor un modo de teclado en el que Escape cierra el popup.
 """
 import asyncio
+import time
 
 from .. import config, eww, paths
 from ..daemon import Source
@@ -19,6 +20,9 @@ KEY_MODES = {"switcher": "switcher", "power": "power"}
 POWER_ACTIONS = ["lock", "suspend", "hibernate", "logout", "reboot", "poweroff"]
 POWER_CONFIRM = {"logout", "reboot", "poweroff"}
 CLOSER = "popup-closer"
+# Tras abrir o cerrar con toggle, se ignoran más toggles durante este tiempo (doble clic o clics
+# impacientes): abrir y cerrar a la vez una ventana pesada como Configuración bloquea Eww.
+TOGGLE_COOLDOWN = 0.5
 
 
 class PopupSource(Source):
@@ -27,6 +31,8 @@ class PopupSource(Source):
     def __init__(self, hub) -> None:
         super().__init__(hub)
         self.state = {"open": "", "monitor": "", "tab": "", "confirm": "", "sel": "", "csel": ""}
+        self._busy = asyncio.Lock()  # una sola apertura/cierre a la vez
+        self._last_toggle = 0.0
 
     async def start(self) -> None:
         self.publish(self.state)
@@ -42,6 +48,10 @@ class PopupSource(Source):
         return await self.wm.wm.focused_monitor() or ""
 
     async def cmd_open(self, name: str, monitor: str = "", tab: str = "") -> str:
+        async with self._busy:
+            return await self._open(name, monitor, tab)
+
+    async def _open(self, name: str, monitor: str = "", tab: str = "") -> str:
         if name not in POPUPS:
             return f"popup desconocido: {name}"
         monitor = await self._resolve_monitor(monitor)
@@ -66,10 +76,16 @@ class PopupSource(Source):
         return f"{name} abierto en {monitor or 'monitor por defecto'}"
 
     async def cmd_toggle(self, name: str, monitor: str = "", tab: str = "") -> str:
-        target = await self._resolve_monitor(monitor)
-        if self.state["open"] == name and self.state["monitor"] == target and (not tab or tab == self.state["tab"]):
-            return await self.cmd_close()
-        return await self.cmd_open(name, target, tab)
+        if self._busy.locked() or time.monotonic() - self._last_toggle < TOGGLE_COOLDOWN:
+            return "ignorado (doble clic)"
+        async with self._busy:
+            try:
+                target = await self._resolve_monitor(monitor)
+                if self.state["open"] == name and self.state["monitor"] == target and (not tab or tab == self.state["tab"]):
+                    return await self._close()
+                return await self._open(name, target, tab)
+            finally:
+                self._last_toggle = time.monotonic()
 
     async def _close_windows(self) -> None:
         active = await asyncio.to_thread(eww.active_windows)
@@ -78,6 +94,10 @@ class PopupSource(Source):
             await asyncio.to_thread(eww.close, *ids)
 
     async def cmd_close(self) -> str:
+        async with self._busy:
+            return await self._close()
+
+    async def _close(self) -> str:
         # primero se libera el teclado: si Eww no respondiera, Super seguiría funcionando
         await self.wm.wm.popup_mode(False)
         self.state.update(open="", confirm="")

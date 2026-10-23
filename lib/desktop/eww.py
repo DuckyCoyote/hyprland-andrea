@@ -43,7 +43,9 @@ def _call(*args: str, timeout: float = 10) -> tuple[int, str]:
 
 
 def running() -> bool:
-    return call("ping", timeout=2)[0] == 0
+    # Un Eww bloqueado sigue aceptando la conexión y sale con código 0, pero sin «pong»
+    code, out = call("ping", timeout=2)
+    return code == 0 and "pong" in out
 
 
 def start_daemon() -> None:

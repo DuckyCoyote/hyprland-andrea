@@ -2,18 +2,28 @@
 .toasts { margin: 6px 14px 10px 10px; }
 .notification {
   background-color: $bg;
-  border: $border-width solid $border-strong;
-  border-left: 3px solid $accent;
-  border-radius: $radius;
-  padding: 10px 10px 10px 12px;
+  border: $border-width + 1px solid $border-strong;
+  border-radius: $radius-lg;
+  padding: 14px 12px 14px 16px;
   &.toast { @include elevation; }
-  &.critical { border-left-color: $red; }
-  .notify-glyph { font-size: $font-xl + 4px; }
-  .notify-icon-box { min-width: 40px; }
-  .notify-app { font-size: $font-sm; color: $fg-dim; }
+  // Insignia circular: aro de acento sobre un relleno tenue del mismo color
+  .notify-badge {
+    min-width: 40px;
+    min-height: 40px;
+    border-radius: $radius-pill;
+    border: 2px solid $accent;
+    background-color: rgba($accent, 0.18);
+  }
+  .notify-glyph { color: $accent; font-size: $glyph-size; }
+  &.critical {
+    border-color: rgba($danger, 0.6);
+    .notify-badge { border-color: $danger; background-color: rgba($danger, 0.18); }
+    .notify-glyph { color: $danger; }
+  }
+  .notify-app { font-size: $font-sm; color: $fg-muted; }
   .notify-time { font-size: $font-sm; color: $fg-muted; }
-  .notify-summary { font-weight: bold; }
-  .notify-body { color: $subtext1; font-size: $font-size - 1px; }
+  .notify-summary { font-style: italic; font-weight: bold; }
+  .notify-body { font-style: italic; color: $fg-dim; }
   .text-btn { padding: 4px 10px; }
 }
 .notifications-popup .notification { background-color: $bg-alt; }

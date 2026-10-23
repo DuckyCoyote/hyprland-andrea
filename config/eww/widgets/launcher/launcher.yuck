@@ -23,8 +23,12 @@
   (box :orientation "v" :space-evenly false :spacing 12
     (box :class "search" :space-evenly false :spacing 10
       (label :class "glyph c-overlay2" :text "󰍉")
-      (input :class "search-input" :hexpand true :value launcher_query
-             :onchange "${EWW_CMD} update launcher_query='{}'"
+      ;; Sin :value a propósito: si el campo siguiera a launcher_query, una actualización atrasada
+      ;; (escribir rápido) reescribiría el texto, volvería a disparar onchange y el campo y la
+      ;; variable se perseguirían sin fin. desktopd vacía launcher_query antes de abrir la ventana.
+      ;; El script ordena las actualizaciones (ver scripts/launcher-query.sh).
+      (input :class "search-input" :hexpand true
+             :onchange "${EWW_CONFIG_DIR}/scripts/launcher-query.sh '{}' ${EWW_CMD}"
              :onaccept "desktopctl apps launch '${arraylength(results) > 0 ? results[0].id : ''}' ; ${EWW_CMD} update launcher_query=''"))
     (box :space-evenly false :spacing 12 :vexpand true
       ;; Categorías

@@ -97,3 +97,37 @@ paquetes dependen de él (`github-desktop`, `qtkeychain-qt6`): el instalador lo 
 **GDM** no sirve: su PAM (`gdm-password`) no incluye `pam_kwallet5`, así que el monedero no recibe la
 contraseña de inicio y queda cerrado. Se probó a añadirlo a `/etc/pam.d/gdm-password`, pero en vez de
 mantener un PAM propio el instalador ofrece volver a **SDDM**, cuyo PAM ya lo trae.
+
+## Shift trabada (ratón Maxxter L8 Pro)
+
+De vez en cuando Shift se queda pulsada sin que nadie la toque (pasaba también en KDE y GNOME, así
+que no es cosa de Hyprland). El receptor inalámbrico del ratón Maxxter se presenta como **Realtek L8
+Pro** (USB `248a:ffe2`) y expone dos interfaces: «Realtek L8 Pro» (ratón) y «Realtek L8 Pro
+Keyboard», un teclado completo con Shift incluido. Si esa interfaz envía «Shift pulsada» y nunca
+«Shift suelta», el sistema la da por mantenida.
+
+Indicios (2026-10-22): las dos veces que ocurrió, el registro del kernel muestra
+`usb 1-5.3: USB disconnect` de ese receptor (01:51 y 19:05) justo antes de reiniciar, y ningún otro
+dispositivo se desconectó. El otro sospechoso es el Philips SPK9304 (`1bcf:08a0`), que también
+tiene interfaz de teclado.
+
+Para comprobarlo:
+
+- Ver qué teclas cree el kernel que están pulsadas en cada dispositivo: la ioctl `EVIOCGKEY` sobre
+  `/dev/input/event*` (el usuario está en el grupo `input`). Shift izquierda es el código 42 y la
+  derecha, 54.
+- `journalctl -b -1 -k | grep -iE 'disconnect|248a|1bcf'` tras reiniciar por el fallo.
+- Salida rápida sin reiniciar: desconectar y volver a conectar el receptor; al desaparecer el
+  dispositivo se sueltan sus teclas.
+
+Arreglo propuesto (pendiente de aplicar): que libinput ignore solo la interfaz de teclado del
+receptor, con lo que el ratón sigue funcionando y vale para cualquier escritorio:
+
+```sh
+printf '%s\n' 'ACTION=="add|change", KERNEL=="event*", ATTRS{idVendor}=="248a", ATTRS{idProduct}=="ffe2", ATTRS{name}=="Realtek L8 Pro Keyboard", ENV{LIBINPUT_IGNORE_DEVICE}="1"' \
+  | sudo tee /etc/udev/rules.d/90-l8pro-no-keyboard.rules
+sudo udevadm control --reload && sudo udevadm trigger -s input
+```
+
+Efecto secundario posible: si los botones laterales o especiales del ratón envían teclas, dejarían
+de funcionar. Para deshacerlo, borrar el archivo de la regla y repetir el `udevadm`.

@@ -98,15 +98,17 @@
            :text {arraylength(appearance.wallpaper_rows ?: []) == 0
                   ? "Copia imágenes en ${appearance.wallpaper_dir ?: ''} y pulsa 󰑐."
                   : "Carpeta: ${appearance.wallpaper_dir ?: ''}"})
-    (box :orientation "v" :space-evenly false :spacing 8
-      (for row in {appearance.wallpaper_rows ?: []}
-        (box :space-evenly true :spacing 8
-          (for w in row
-            (box
-            (eventbox :cursor "pointer" :visible {!(w.placeholder ?: false)}
-              (button :class "wall-card ${w.selected ? 'selected' : ''}" :tooltip {w.name}
-                      :onclick "desktopctl appearance set wallpaper '${w.path}'"
-                (box :class "wall-thumb" :style "background-image: url('${w.thumb ?: ''}');"))))))))
+    ;; Altura fija con scroll: ~2,5 filas visibles para que se note que hay más
+    (scroll :class "wall-list" :vscroll true :hscroll false :height 280
+      (box :orientation "v" :space-evenly false :spacing 8
+        (for row in {appearance.wallpaper_rows ?: []}
+          (box :space-evenly true :spacing 8
+            (for w in row
+              (box
+              (eventbox :cursor "pointer" :visible {!(w.placeholder ?: false)}
+                (button :class "wall-card ${w.selected ? 'selected' : ''}" :tooltip {w.name}
+                        :onclick "desktopctl appearance set wallpaper '${w.path}'"
+                  (box :class "wall-thumb" :style "background-image: url('${w.thumb ?: ''}');")))))))))
     (section-title :text "Cursor")
     (box :orientation "v" :space-evenly false :spacing 8
       (for row in {appearance.cursor_rows ?: []}

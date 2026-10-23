@@ -85,6 +85,8 @@ progress.meter, .meter {
   &.selected { background-color: rgba($accent, 0.2); label { color: $accent; font-weight: bold; } }
 }
 // Fondos y cursores
+// Deja hueco a la barra de scroll para que no tape las miniaturas
+.wall-list > box { padding-right: 10px; }
 .wall-card, .cursor-card {
   padding: 4px;
   border-radius: $radius;
