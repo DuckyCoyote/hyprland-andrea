@@ -1,0 +1,5 @@
+// Bluetooth (reutiliza .net-glyph, .net-name y .net-state del panel de red)
+.bluetooth-popup {
+  .list-row.selected { border-color: $accent; background-color: rgba($accent, 0.08); }
+}
+.bt-battery { font-size: $font-sm; color: $fg-dim; }

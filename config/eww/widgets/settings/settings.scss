@@ -42,6 +42,37 @@ progress.meter, .meter {
   .swatch { min-height: 26px; border-radius: $radius-pill; margin: 0 2px; }
   .theme-name { font-size: $font-sm; }
 }
+.bar-card {
+  padding: 6px;
+  border-radius: $radius;
+  border: 2px solid transparent;
+  &:hover { background-color: $hover; }
+  &.selected { border-color: $accent; background-color: rgba($accent, 0.1); }
+  .bar-preview {
+    padding: 14px 10px;
+    border-radius: $radius-sm;
+    border: $border-width solid $border;
+    background-color: $bg-sunken;
+  }
+  .bar-mini {
+    min-height: 14px;
+    padding: 0 5px;
+    border-radius: $radius-sm;
+    border: 1px solid $border-strong;
+    background-color: $bg;
+  }
+  .bar-mini-dot {
+    min-width: 8px;
+    min-height: 6px;
+    margin: 4px 0;
+    border-radius: $radius-pill;
+    background-color: $fg-muted;
+    &.accent { background-color: $accent; }
+    &.island { background-color: $surface1; }
+    &.green { background-color: $green; }
+    &.red { background-color: $red; }
+  }
+}
 .accent-dot {
   min-width: 26px;
   min-height: 26px;

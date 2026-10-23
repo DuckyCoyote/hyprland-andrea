@@ -1,7 +1,8 @@
 // Barra: grupos independientes en cápsulas redondeadas (06_bar.png / mockup.png)
 
+// Mismo hueco que entre ventanas por arriba y a los lados; por debajo lo pone gaps_out
 .bar {
-  margin: $gap 14px 0 14px;
+  margin: $window-gap $window-gap 0 $window-gap;
 }
 
 .bar-group {
@@ -90,4 +91,106 @@
     padding: 0;
   }
   &:hover { background-color: $icon-red; .power-glyph { color: $on-accent; } }
+}
+
+// ════ Diseño «Rectángulo» (rectangle.jpg): una franja continua ═════════════
+.bar-rect {
+  margin: $window-gap $window-gap 0 $window-gap;
+  padding: 4px 12px;
+  min-height: 34px;
+  background-color: $bg;
+  border: $border-width solid $border-strong;
+  border-radius: $radius + 2px;
+  @include elevation;
+  button { @include transition(opacity); }
+  button:hover { opacity: 0.8; }
+  // relleno a la derecha: los glifos Nerd Font son más anchos que su avance y GTK los recorta
+  .rect-glyph { font-size: $glyph-size - 1px; padding: 0 4px 0 1px; }
+  .rect-glyph.busy { color: $overlay1; }
+  .rect-value { font-size: $font-size - 1px; }
+}
+.rect-launcher .rect-glyph { color: $accent; font-size: $glyph-size + 1px; }
+
+.rect-workspaces .rws {
+  padding: 2px 12px;
+  border-radius: $radius-sm + 2px;
+  border: 2px solid transparent;
+  background-color: rgba($surface0, 0.6);
+  @include transition(background-color, border-color);
+  .rws-num { font-weight: bold; }
+  .rws-empty { color: $fg-muted; min-width: 16px; }
+  &:hover { background-color: $hover; }
+  &.active { border-color: $border-strong; background-color: transparent; .rws-num { color: $accent; } }
+  &.urgent { border-color: $red; }
+}
+
+.rect-window {
+  .rect-chevron { color: $fg-dim; font-size: $font-size - 1px; padding-right: 4px; }
+  .rect-app { font-weight: bold; }
+  .rect-title { color: $fg-dim; }
+}
+
+.rect-status {
+  padding: 2px 12px;
+  border-radius: $radius-sm + 2px;
+  border: $border-width solid $border-strong;
+  background-color: rgba($surface0, 0.6);
+}
+.rect-clock {
+  .rect-date { font-size: $font-size - 1px; }
+  .rect-time { font-weight: bold; }
+}
+
+// ════ Diseño «Arcade» (04_settings.png en horizontal + reproductor de eww-bar.png) ═══
+.bar-arcade {
+  margin: $window-gap $window-gap 0 $window-gap;
+  padding: 4px 6px;
+  min-height: 34px;
+  background-color: $bg;
+  border: $border-width solid $border-strong;
+  border-radius: $radius + 2px;
+  @include elevation;
+  button { @include transition(opacity); }
+  button:hover { opacity: 0.8; }
+  // relleno a la derecha: los glifos Nerd Font son más anchos que su avance y GTK los recorta
+  .arcade-glyph { font-size: $glyph-size + 1px; padding: 0 4px 0 1px; }
+}
+// Islas internas: un tono más claro que la franja, sin borde
+.arcade-island {
+  padding: 3px 12px;
+  border-radius: $radius-sm + 2px;
+  background-color: rgba($surface0, 0.55);
+}
+.arcade-launcher {
+  padding: 0 8px;
+  .arcade-glyph { color: $accent; font-size: $glyph-size + 3px; }
+}
+.aws {
+  padding: 2px;
+  border-radius: $radius-pill;
+  @include transition(background-color);
+  &.empty { opacity: 0.6; }
+  &.urgent { background-color: rgba($red, 0.45); }
+  &:hover { background-color: $hover; }
+}
+.arcade-title { font-weight: bold; font-size: $font-size - 1px; }
+.arcade-controls {
+  padding: 1px 6px;
+  .icon-btn { min-width: 26px; min-height: 26px; }
+  .icon-btn .glyph { font-size: $font-size + 3px; }
+  .icon-btn.play .glyph { font-size: $font-size + 8px; }
+}
+.arcade-avatar {
+  min-width: 20px;
+  min-height: 20px;
+}
+.arcade-clock .arcade-time { font-weight: bold; }
+.arcade-power {
+  padding: 0 8px;
+  .arcade-glyph { color: $icon-red; }
+}
+.arcade-updates {
+  image { opacity: 0.55; }
+  &.pending image { opacity: 1; }
+  &.busy image { opacity: 0.35; }
 }

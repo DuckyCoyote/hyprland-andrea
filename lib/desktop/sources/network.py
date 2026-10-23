@@ -5,10 +5,12 @@ NetworkManager por la entrada estándar de `nmcli --ask` y es NetworkManager qui
 almacena en su perfil de conexión (archivo de sistema legible solo por root o keyring).
 """
 import asyncio
+import os
 
 from ..daemon import Source
 from ..util import Debouncer, have, log, run, split_nmcli, stream_lines
 
+CLEAR_AFTER = 6  # segundos que se ve un mensaje de estado o de error
 WIFI_GLYPHS = ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"]
 WIFI_LOCK_GLYPHS = ["󰤬", "󰤡", "󰤤", "󰤧", "󰤪"]
 
@@ -19,7 +21,18 @@ def wifi_glyph(signal: int, locked: bool = False) -> str:
 
 
 def _secrets_missing(msg: str) -> bool:
-    return "Secrets were required" in msg or "no secrets" in msg.lower() or "no-secrets" in msg
+    low = msg.lower()
+    return any(x in low for x in ("secrets were required", "no secrets", "no-secrets", "canceled the secrets",
+                                  "passwords or encryption keys"))
+
+
+async def _quiet_kde_agent() -> None:
+    """Fuera de Plasma, el módulo networkmanagement de kded6 (si algo lo arrancó) abriría su propio
+    diálogo de contraseña al conectar; se descarga para que la contraseña se pida en el panel.
+    `--auto-start=no`: si kded6 no está corriendo, no se arranca."""
+    if have("busctl") and "KDE" not in os.environ.get("XDG_CURRENT_DESKTOP", ""):
+        await run("busctl", "--user", "--auto-start=no", "call", "org.kde.kded6", "/kded",
+                  "org.kde.kded6", "unloadModule", "s", "networkmanagement", timeout=3)
 
 
 class NetworkSource(Source):
@@ -33,6 +46,7 @@ class NetworkSource(Source):
         self.busy = ""
         self.pending = ""  # SSID que espera contraseña
         self.scanning = False
+        self._clear: asyncio.TimerHandle | None = None
 
     async def start(self) -> None:
         if not have("nmcli"):
@@ -104,6 +118,12 @@ class NetworkSource(Source):
     def _set(self, status: str = "", error: str = "", busy: str = "") -> None:
         self.status, self.error, self.busy = status, error, busy
         self._refresh()
+        # los mensajes finales (no «Conectando…» ni la espera de contraseña) se borran solos
+        if self._clear:
+            self._clear.cancel()
+            self._clear = None
+        if (status or error) and not busy and not self.pending:
+            self._clear = asyncio.get_running_loop().call_later(CLEAR_AFTER, self._set)
 
     # ---- órdenes -------------------------------------------------------------
     async def cmd_toggle_wifi(self) -> None:
@@ -121,6 +141,13 @@ class NetworkSource(Source):
     async def cmd_connect(self, ssid: str) -> str:
         data = self.hub.get("network") or {}
         net = next((n for n in data.get("networks", []) if n["ssid"] == ssid), None)
+        await _quiet_kde_agent()
+        if net and net["known"] and net["secure"] and not await self._system_secret(ssid):
+            # Perfil cuya contraseña guarda un agente (KWallet de Plasma): se pide aquí y se
+            # recrea el perfil con la contraseña en NetworkManager.
+            self.pending = ssid
+            self._set(status=f"Introduce la contraseña de {ssid}")
+            return "password"
         if net and net["known"]:
             self._set(busy=ssid, status=f"Conectando a {ssid}…")
             code, _, err = await run("nmcli", "connection", "up", "id", ssid, timeout=45)
@@ -141,8 +168,14 @@ class NetworkSource(Source):
             return "password"
         return await self._connect_new(ssid, None)
 
+    async def _system_secret(self, ssid: str) -> bool:
+        """¿La contraseña del perfil la guarda NetworkManager (psk-flags 0) y no un agente?"""
+        code, out, _ = await run("nmcli", "-g", "802-11-wireless-security.psk-flags", "connection", "show", "id", ssid)
+        return code != 0 or out.strip().startswith("0")
+
     async def cmd_password(self, ssid: str, password: str) -> str:
         self.pending = ""
+        await _quiet_kde_agent()
         # Un perfil previo (olvidado a medias o con secretos de un agente ausente) haría que
         # `device wifi connect` lo reutilizara y volviera a fallar; se parte de cero.
         await self._delete_profiles(ssid)

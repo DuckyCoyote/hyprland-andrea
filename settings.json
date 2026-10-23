@@ -72,6 +72,7 @@
 
   "appearance": {
     "theme": "mocha",
+    "bar_style": "capsules",
     "accent": "mauve",
     "font_family": "JetBrainsMono Nerd Font",
     "font_size": 13,

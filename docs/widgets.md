@@ -11,6 +11,7 @@ tokens de `styles/tokens/` — nunca colores, fuentes ni tamaños literales.
 | Configuración | `settings` | `appearance`, `system`, `wm` + los de audio/red | `appearance set/reset/apply`, `system …` |
 | Energía | `power` | `system`, `popup.confirm` | `system power lock|suspend|hibernate|logout|reboot|poweroff` |
 | Red | `network` | `network` | `network toggle-wifi/scan/connect/password/disconnect/editor` |
+| Bluetooth | `bluetooth` | `bluetooth` | `bluetooth toggle-power/toggle-discoverable/scan/connect/disconnect/forget/editor` |
 | Audio | `audio` | `audio` | `audio set/step/mute/default` |
 | Actualizaciones | `updates` | `updates` | `updates refresh/update/changes` |
 | Multimedia | `media` | `media` + `media_position` | `media toggle/next/previous/shuffle/loop/seek/select` |

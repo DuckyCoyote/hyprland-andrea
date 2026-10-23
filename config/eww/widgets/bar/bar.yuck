@@ -11,7 +11,15 @@
   :namespace "hd-bar"
   (bar :monitor monitor :modules modules))
 
+;; Diseño elegido en Configuración → Apariencia → Barra superior (appearance.bar_style)
 (defwidget bar [monitor modules]
+  (box
+    (box :visible {(appearance.bar_style ?: "capsules") == "capsules"} (bar-capsules :monitor monitor :modules modules))
+    (box :visible {appearance.bar_style == "rectangle"} (bar-rectangle :monitor monitor :modules modules))
+    (box :visible {appearance.bar_style == "arcade"} (bar-arcade :monitor monitor :modules modules))))
+
+;; ════ Diseño «Cápsulas»: grupos independientes ══════════════════════════════
+(defwidget bar-capsules [monitor modules]
   (centerbox :class "bar"
     (box :halign "start" :space-evenly false :spacing {appearance.spacing ?: 8}
       (box :visible {matches(modules, ",launcher,")} (bar-launcher :monitor monitor))
@@ -148,6 +156,14 @@
         (box :space-evenly false :spacing 6
           (label :class "sys-glyph ${network.kind == 'disconnected' ? 'c-red' : 'c-blue'}" :text {network.glyph ?: "󰤭"})
           (label :class "sys-value" :text {network.label ?: ""}))))
+    ;; Bluetooth
+    (eventbox :cursor "pointer" :visible {bluetooth.available == true}
+      (button :onclick "desktopctl popup toggle bluetooth ${monitor}" :onrightclick "desktopctl bluetooth toggle-power"
+              :tooltip {bluetooth.powered != true ? "Bluetooth desactivado" : (bluetooth.connected_count ?: 0) > 0 ? "Bluetooth: ${bluetooth.connected_names}" : "Bluetooth activado"}
+        (box :space-evenly false :spacing 6
+          (label :class "sys-glyph ${bluetooth.powered == true ? 'c-blue' : 'c-overlay2'}" :text {bluetooth.glyph ?: "󰂯"})
+          (label :class "sys-value" :visible {(bluetooth.connected_count ?: 0) > 0} :limit-width 14
+                 :text {bluetooth.connected_names ?: ""}))))
     ;; Usuario / sesión
     (eventbox :cursor "pointer"
       (button :onclick "desktopctl popup toggle settings ${monitor} system" :tooltip "${system.user ?: ''}@${system.host ?: ''}"
@@ -158,3 +174,207 @@
     (eventbox :cursor "pointer"
       (button :class "power-button" :valign "center" :onclick "desktopctl popup toggle power ${monitor}" :tooltip "Energía"
         (label :class "power-glyph" :xalign 0.5 :yalign 0.5 :justify "center" :text "󰐥")))))
+
+;; ════ Diseño «Rectángulo»: una sola franja (rectangle.jpg) ═══════════════════
+;; Izquierda: logo, espacios con los iconos de sus ventanas y la ventana enfocada.
+;; Derecha: micrófono, clima, bandeja, recursos, grupo de estado y fecha/hora.
+(defwidget bar-rectangle [monitor modules]
+  (box :class "bar-rect" :space-evenly false :spacing 12
+    (box :visible {matches(modules, ",launcher,")} (rect-launcher :monitor monitor))
+    (box :visible {matches(modules, ",workspaces,") && wm.has_workspaces} (rect-workspaces :monitor monitor))
+    (box :visible {matches(modules, ",window,")} (rect-window :monitor monitor))
+    (box :hexpand true)
+    (box :class "rect-right" :space-evenly false :spacing 14
+      (box :visible {matches(modules, ",media,") && media.active == true} (rect-media :monitor monitor))
+      (box :visible {matches(modules, ",system,")} (rect-indicators :monitor monitor :modules modules))
+      (box :visible {matches(modules, ",clock,")} (rect-clock :monitor monitor)))))
+
+(defwidget rect-launcher [monitor]
+  (eventbox :cursor "pointer"
+    (button :class "rect-launcher" :tooltip "Aplicaciones"
+            :onclick "desktopctl popup toggle launcher ${monitor}"
+            :onrightclick "desktopctl popup toggle settings ${monitor} appearance"
+      (label :class "rect-glyph" :text ""))))
+
+(defwidget rect-workspaces [monitor]
+  (eventbox :onscroll "desktopctl wm scroll ${monitor} {}"
+    (box :class "rect-workspaces" :space-evenly false :spacing 6
+      (for ws in {wm.workspaces[monitor] ?: []}
+        (eventbox :cursor "pointer"
+          (button :class "rws ${ws.state}" :onclick "desktopctl wm focus ${ws.id}"
+                  :tooltip "Espacio ${ws.label}${ws.state == 'urgent' ? ' (requiere atención)' : ''}"
+            (box :space-evenly false :spacing 8
+              (label :class "rws-num" :text {ws.label})
+              ;; el guion ocupa lo mismo que un icono: todos los espacios miden igual
+              (label :class "rws-empty" :visible {arraylength(ws.apps ?: []) == 0} :xalign 0.5 :text "—")
+              (box :visible {arraylength(ws.apps ?: []) > 0} :space-evenly false :spacing 4
+                (for icon in {ws.apps ?: []}
+                  (image :path icon :image-width 16 :image-height 16))))))))))
+
+(defwidget rect-window [monitor]
+  (box :class "rect-window" :space-evenly false :spacing 8
+       :visible {(wm.windows?.[monitor]?.class ?: "") != ""}
+       :tooltip {wm.windows?.[monitor]?.title ?: ""}
+    (label :class "rect-chevron" :text "")
+    (image :visible {(wm.windows?.[monitor]?.icon ?: "") != ""}
+           :path {(wm.windows?.[monitor]?.icon ?: "") != "" ? wm.windows[monitor].icon : "${EWW_CONFIG_DIR}/../../assets/icons/blank.png"}
+           :image-width 20 :image-height 20)
+    (label :class "rect-app" :text {wm.windows?.[monitor]?.name ?: ""})
+    (label :class "rect-title" :limit-width 48 :text {wm.windows?.[monitor]?.title ?: ""})))
+
+(defwidget rect-media [monitor]
+  (eventbox :cursor "pointer"
+    (button :onclick "desktopctl popup toggle media ${monitor}" :onrightclick "desktopctl media toggle"
+            :tooltip "${media.player_label ?: ''}: ${media.title ?: ''}"
+      (box :space-evenly false :spacing 6
+        (label :class "rect-glyph c-pink" :text {media.playing == true ? "󰎈" : "󰏤"})
+        (label :class "rect-value" :limit-width 28 :text "${media.title ?: ''}${(media.artist ?: '') != '' ? ' · ' + media.artist : ''}")))))
+
+(defwidget rect-indicators [monitor modules]
+  (box :space-evenly false :spacing 14
+    ;; Micrófono: dispositivo y volumen
+    (eventbox :cursor "pointer" :visible {audio.has_source == true}
+              :onscroll "desktopctl audio step source {}"
+      (button :onclick "desktopctl audio mute source" :onrightclick "desktopctl popup open audio ${monitor} in"
+              :tooltip "Micrófono: ${audio.source?.description ?: ''}"
+        (box :space-evenly false :spacing 6
+          (label :class "rect-glyph ${audio.source?.muted == true ? 'c-red' : ''}" :text {audio.source?.muted == true ? "󰍭" : "󰍬"})
+          (label :class "rect-value" :limit-width 12 :text {audio.source?.description ?: ""})
+          (label :class "rect-value" :visible {audio.source?.muted != true} :text {audio.source?.volume ?: ""}))))
+    ;; Clima
+    (eventbox :cursor "pointer" :visible {weather.available == true}
+      (button :onclick "desktopctl popup toggle weather ${monitor}" :tooltip "${weather.city ?: ''}: ${weather.desc ?: ''}"
+        (box :space-evenly false :spacing 6
+          (label :class "rect-glyph c-${weather.color ?: 'lavender'}" :text {weather.glyph ?: "󰖐"})
+          (label :class "rect-value" :text "${weather.temp ?: '--'}${weather.unit ?: '°C'}"))))
+    (box :visible {matches(modules, ",tray,")} :class "tray"
+      (systray :spacing 14 :icon-size 16 :prepend-new true))
+    ;; Configuración (sustituye a los indicadores de disco, CPU y memoria)
+    (eventbox :cursor "pointer"
+      (button :onclick "desktopctl popup toggle settings ${monitor} system" :tooltip "Configuración"
+        (label :class "rect-glyph" :text "󰒓")))
+    ;; Grupo de estado: volumen, red, Bluetooth, notificaciones y actualizaciones
+    (box :class "rect-status" :space-evenly false :spacing 14
+      (eventbox :cursor "pointer" :visible {audio.available == true} :onscroll "desktopctl audio step sink {}"
+        (button :onclick "desktopctl popup toggle audio ${monitor}" :onrightclick "desktopctl audio mute sink"
+                :tooltip "${audio.sink?.description ?: ''}: ${audio.sink?.muted == true ? 'silenciado' : (audio.sink?.volume ?: 0) + '%'}"
+          (label :class "rect-glyph ${audio.sink?.muted == true ? 'c-red' : ''}" :text {audio.sink?.glyph ?: "󰕾"})))
+      (eventbox :cursor "pointer" :visible {network.available == true}
+        (button :onclick "desktopctl popup toggle network ${monitor}"
+                :tooltip {network.kind == "wifi" ? "Wi-Fi: ${network.ssid}" : network.kind == "ethernet" ? "Ethernet: ${network.ethernet?.connection}" : "Sin conexión"}
+          (label :class "rect-glyph ${network.kind == 'disconnected' ? 'c-red' : ''}" :text {network.glyph ?: "󰤭"})))
+      (eventbox :cursor "pointer" :visible {bluetooth.available == true}
+        (button :onclick "desktopctl popup toggle bluetooth ${monitor}" :onrightclick "desktopctl bluetooth toggle-power"
+                :tooltip {bluetooth.powered != true ? "Bluetooth desactivado" : (bluetooth.connected_count ?: 0) > 0 ? "Bluetooth: ${bluetooth.connected_names}" : "Bluetooth activado"}
+          (label :class "rect-glyph ${bluetooth.powered == true ? '' : 'c-overlay2'}" :text {bluetooth.glyph ?: "󰂯"})))
+      (eventbox :cursor "pointer"
+        (button :onclick "desktopctl popup toggle notifications ${monitor}" :onrightclick "desktopctl notifications dnd toggle"
+                :tooltip {notifications.dnd == true ? "No molestar activado" : "${notifications.count ?: 0} notificaciones"}
+          (box :space-evenly false :spacing 6
+            (label :class "rect-glyph c-sky" :text {notifications.dnd == true ? "󰂛" : "󰂚"})
+            (label :class "rect-value" :text {notifications.count ?: 0}))))
+      (eventbox :cursor "pointer" :visible {updates.available ?: true}
+        (button :onclick "desktopctl popup toggle updates ${monitor}" :onrightclick "desktopctl updates refresh"
+                :tooltip {updates.status == "checking" ? "Buscando actualizaciones…" : "${updates.count} actualizaciones pendientes"}
+          (box :space-evenly false :spacing 6
+            (label :class "rect-glyph ${updates.status == 'checking' ? 'busy' : ''}" :text "󰏗")
+            (label :class "rect-value" :text {updates.count ?: 0}))))
+      (eventbox :cursor "pointer"
+        (button :onclick "desktopctl popup toggle power ${monitor}" :tooltip "Energía"
+          (label :class "rect-glyph c-red" :text "󰐥"))))))
+
+(defwidget rect-clock [monitor]
+  (eventbox :cursor "pointer"
+    (button :onclick "desktopctl popup toggle calendar ${monitor}" :tooltip {clock.date}
+      (box :class "rect-clock" :space-evenly false :spacing 14
+        (label :class "rect-date" :text {clock.short ?: ""})
+        (label :class "rect-time" :text {clock.time})))))
+
+;; ════ Diseño «Arcade»: 04_settings.png en horizontal, reproductor al centro (eww-bar.png) ═══
+;; Una franja oscura con islas internas: logo y espacios a la izquierda, reproductor en
+;; medio, indicadores, hora y energía a la derecha.
+(defwidget bar-arcade [monitor modules]
+  (centerbox :class "bar-arcade"
+    (box :halign "start" :space-evenly false :spacing 8
+      (box :visible {matches(modules, ",launcher,")} (arcade-launcher :monitor monitor))
+      (box :visible {matches(modules, ",workspaces,") && wm.has_workspaces} (arcade-workspaces :monitor monitor)))
+    (box :halign "center"
+      (box :visible {matches(modules, ",media,") && media.active == true} (arcade-media :monitor monitor)))
+    (box :halign "end" :space-evenly false :spacing 8
+      (box :visible {matches(modules, ",system,")} (arcade-indicators :monitor monitor :modules modules))
+      (box :visible {matches(modules, ",clock,")} (arcade-clock :monitor monitor))
+      (eventbox :cursor "pointer"
+        (button :class "arcade-power" :onclick "desktopctl popup toggle power ${monitor}" :tooltip "Energía"
+          (label :class "arcade-glyph" :text "󰐥"))))))
+
+(defwidget arcade-launcher [monitor]
+  (eventbox :cursor "pointer"
+    (button :class "arcade-launcher" :tooltip "Aplicaciones"
+            :onclick "desktopctl popup toggle launcher ${monitor}"
+            :onrightclick "desktopctl popup toggle settings ${monitor} appearance"
+      (label :class "arcade-glyph" :text ""))))
+
+(defwidget arcade-workspaces [monitor]
+  (eventbox :onscroll "desktopctl wm scroll ${monitor} {}"
+    (box :class "arcade-island" :space-evenly false :spacing 6
+      (for ws in {wm.workspaces[monitor] ?: []}
+        (eventbox :cursor "pointer"
+          (button :class "aws ${ws.state}" :onclick "desktopctl wm focus ${ws.id}"
+                  :tooltip "Espacio ${ws.label}${ws.state == 'urgent' ? ' (requiere atención)' : ''}"
+            (image :path "${EWW_CONFIG_DIR}/../../assets/icons/${ws.state == 'active' ? 'pacman' : ws.state == 'empty' ? 'empty' : 'ghost'}.png"
+                   :image-width 18 :image-height 18)))))))
+
+;; Reproductor: icono del reproductor, título y los controles en su propia isla
+(defwidget arcade-media [monitor]
+  (box :space-evenly false :spacing 8
+    (eventbox :cursor "pointer"
+      (button :onclick "desktopctl popup toggle media ${monitor}" :onrightclick "desktopctl media cycle"
+              :tooltip "${media.player_label ?: ''}: ${media.title ?: ''}${(media.artist ?: '') != '' ? ' · ' + media.artist : ''}"
+        (box :space-evenly false :spacing 8
+          (label :class "arcade-glyph c-green" :text {media.player_icon ?: "󰝚"})
+          (label :class "arcade-title" :limit-width 32 :text {media.title ?: ""}))))
+    (box :class "arcade-island arcade-controls" :space-evenly false :spacing 2
+      (icon-button :icon "󰒮" :onclick "desktopctl media previous" :class "flat" :tooltip "Anterior")
+      (icon-button :icon {media.playing == true ? "󰏥" : "󰐍"} :onclick "desktopctl media toggle" :class "flat play" :tooltip "Reproducir/Pausar")
+      (icon-button :icon "󰒭" :onclick "desktopctl media next" :class "flat" :tooltip "Siguiente"))))
+
+(defwidget arcade-indicators [monitor modules]
+  (box :class "arcade-island" :space-evenly false :spacing 12
+    (box :visible {matches(modules, ",tray,")} :class "tray"
+      (systray :spacing 10 :icon-size 16 :prepend-new true))
+    (eventbox :cursor "pointer"
+      (button :onclick "desktopctl popup toggle notifications ${monitor}" :onrightclick "desktopctl notifications dnd toggle"
+              :tooltip {notifications.dnd == true ? "No molestar activado" : "${notifications.count ?: 0} notificaciones"}
+        (label :class "arcade-glyph ${notifications.dnd == true ? 'c-overlay2' : 'c-peach'}"
+               :text {notifications.dnd == true ? "󰂛" : (notifications.count ?: 0) > 0 ? "󰂞" : "󰂚"})))
+    ;; Actualizaciones: el pacman de los espacios se «come» los paquetes pendientes
+    (eventbox :cursor "pointer" :visible {updates.available ?: true}
+      (button :onclick "desktopctl popup toggle updates ${monitor}" :onrightclick "desktopctl updates refresh"
+              :tooltip {updates.status == "checking" ? "Buscando actualizaciones…" : "${updates.count} actualizaciones pendientes"}
+        (box :class "arcade-updates ${updates.status == 'checking' ? 'busy' : ''} ${(updates.count ?: 0) > 0 ? 'pending' : ''}" :space-evenly false :spacing 5
+          (image :path "${EWW_CONFIG_DIR}/../../assets/icons/pacman.png" :image-width 18 :image-height 18)
+          (label :class "pill ${(updates.count ?: 0) > 0 ? 'accent' : ''}" :valign "center" :text {updates.count ?: 0}))))
+    (eventbox :cursor "pointer" :visible {network.available == true}
+      (button :onclick "desktopctl popup toggle network ${monitor}"
+              :tooltip {network.kind == "wifi" ? "Wi-Fi: ${network.ssid}" : network.kind == "ethernet" ? "Ethernet: ${network.ethernet?.connection}" : "Sin conexión"}
+        (label :class "arcade-glyph ${network.kind == 'disconnected' ? 'c-red' : 'c-blue'}" :text {network.glyph ?: "󰤭"})))
+    (eventbox :cursor "pointer" :visible {bluetooth.available == true}
+      (button :onclick "desktopctl popup toggle bluetooth ${monitor}" :onrightclick "desktopctl bluetooth toggle-power"
+              :tooltip {bluetooth.powered != true ? "Bluetooth desactivado" : (bluetooth.connected_count ?: 0) > 0 ? "Bluetooth: ${bluetooth.connected_names}" : "Bluetooth activado"}
+        (label :class "arcade-glyph ${bluetooth.powered == true ? 'c-blue' : 'c-overlay2'}" :text {bluetooth.glyph ?: "󰂯"})))
+    (eventbox :cursor "pointer" :visible {audio.available == true} :onscroll "desktopctl audio step sink {}"
+      (button :onclick "desktopctl popup toggle audio ${monitor}" :onrightclick "desktopctl audio mute sink"
+              :tooltip "${audio.sink?.description ?: ''}: ${audio.sink?.muted == true ? 'silenciado' : (audio.sink?.volume ?: 0) + '%'}"
+        (label :class "arcade-glyph ${audio.sink?.muted == true ? 'c-red' : 'c-green'}" :text {audio.sink?.glyph ?: "󰕾"})))
+    ;; Configuración (avatar), a la derecha del volumen
+    (eventbox :cursor "pointer"
+      (button :onclick "desktopctl popup toggle settings ${monitor} system" :tooltip "${system.user ?: ''}@${system.host ?: ''}"
+        (box :class "avatar arcade-avatar" :style "background-image: url('${system.avatar ?: ''}');")))
+    (box :visible {system.battery?.present == true} :tooltip "${system.battery?.status ?: ''} ${system.battery?.percent ?: ''}%"
+      (label :class "arcade-glyph ${(system.battery?.percent ?: 100) < 20 && system.battery?.charging != true ? 'c-red' : 'c-yellow'}"
+             :text {system.battery?.glyph ?: ""}))))
+
+(defwidget arcade-clock [monitor]
+  (eventbox :cursor "pointer"
+    (button :class "arcade-island arcade-clock" :onclick "desktopctl popup toggle calendar ${monitor}" :tooltip {clock.date}
+      (label :class "arcade-time" :text {clock.time}))))

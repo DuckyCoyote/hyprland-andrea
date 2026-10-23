@@ -82,6 +82,12 @@ class WmSource(Source):
         per_monitor = int(settings.get("workspaces", {}).get("per_monitor", 6))
         self.monitors = self.ordered_monitors(await self.wm.monitors())
         existing = {w["id"]: w for w in await self.wm.workspaces()}
+        # iconos de las aplicaciones abiertas en cada espacio (barra «rectángulo»): uno por clase
+        apps: dict[int, list[str]] = {}
+        for c in await self.wm.clients():
+            icon = await self.window_icon(c["class"]) if c["class"] else ""
+            if icon and icon not in apps.setdefault(c["workspace"], []):
+                apps[c["workspace"]].append(icon)
         result, used = {}, set()
 
         for index, mon in enumerate(self.monitors):
@@ -98,7 +104,7 @@ class WmSource(Source):
                          "urgent" if w and w["urgent"] else
                          "occupied" if w and w["windows"] > 0 else "empty")
                 label = str(wid - base) if base < wid <= base + per_monitor else str(wid)
-                items.append({"id": wid, "label": label, "state": state})
+                items.append({"id": wid, "label": label, "state": state, "apps": apps.get(wid, [])[:4]})
                 used.add(wid)
             mon["index"] = index
             result[mon["name"]] = items
@@ -108,7 +114,9 @@ class WmSource(Source):
         for mon in self.monitors:
             win = active.get(mon["name"]) or {}
             cls = win.get("class", "")
+            name = cls.rsplit(".", 1)[-1]  # org.kde.dolphin -> Dolphin
             windows[mon["name"]] = {"class": cls, "title": win.get("title", ""),
+                                    "name": name[:1].upper() + name[1:],
                                     "icon": await self.window_icon(cls) if cls else ""}
 
         self.publish({

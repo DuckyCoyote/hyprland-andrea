@@ -29,6 +29,7 @@ DEPENDENCIES = [
     ("pactl", "libpulse", True, "lectura de audio"),
     ("wpctl", "wireplumber", True, "control de volumen"),
     ("nmcli", "networkmanager", True, "red"),
+    ("bluetoothctl", "bluez-utils", False, "bluetooth"),
     ("playerctl", "playerctl", True, "multimedia MPRIS"),
     ("checkupdates", "pacman-contrib", True, "actualizaciones"),
     ("hyprlock", "hyprlock", True, "bloqueo"),

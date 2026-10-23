@@ -1,0 +1,65 @@
+;; Bluetooth: encendido, visibilidad, dispositivos emparejados y búsqueda de cercanos
+
+(defwindow bluetooth
+  :geometry (geometry :x "120px" :y "0px" :width "380px" :anchor "top right")
+  :stacking "overlay"
+  :focusable false
+  :namespace "hd-popup"
+  (popup-frame :name "bluetooth-popup"
+    (panel-header :icon {bluetooth.glyph ?: "󰂯"} :title "Bluetooth" :color "blue"
+      (box :visible {bluetooth.available == true}
+        (toggle :active {bluetooth.powered ?: false} :onclick "desktopctl bluetooth toggle-power" :tooltip "Activar/desactivar Bluetooth"))
+      (close-button))
+    (bluetooth-content)))
+
+(defwidget bluetooth-content []
+  (box :orientation "v" :space-evenly false :spacing 10
+    (box :visible {bluetooth.available != true} :class "status-line error"
+      (label :wrap true :text {bluetooth.error ?: "Bluetooth no disponible"}))
+    (box :visible {bluetooth.available == true && bluetooth.powered != true} :class "card" :space-evenly false :spacing 12
+      (label :class "net-glyph c-overlay2" :text "󰂲")
+      (label :class "net-state" :text "Bluetooth desactivado"))
+    (box :visible {bluetooth.powered == true} :orientation "v" :space-evenly false :spacing 10
+      ;; Adaptador: nombre y visibilidad para otros dispositivos
+      (box :class "card" :space-evenly false :spacing 12
+        (label :class "net-glyph c-blue" :text "󰌢")
+        (box :orientation "v" :space-evenly false :hexpand true :valign "center"
+          (label :class "net-name" :halign "start" :limit-width 22 :text {bluetooth.name ?: ""})
+          (label :class "net-state" :halign "start" :text {bluetooth.discoverable == true ? "Visible para otros dispositivos" : "Oculto"}))
+        (toggle :active {bluetooth.discoverable ?: false} :onclick "desktopctl bluetooth toggle-discoverable" :tooltip "Visible para otros dispositivos"))
+      ;; Emparejados
+      (box :orientation "v" :space-evenly false :visible {arraylength(bluetooth.paired ?: []) > 0}
+        (section-title :text "Mis dispositivos")
+        (box :class "card list" :orientation "v" :space-evenly false
+          (for dev in {bluetooth.paired ?: []}
+            (list-row :icon {dev.glyph} :title {dev.name}
+                      :subtitle {bluetooth.busy == dev.mac ? (dev.connected ? "Desconectando…" : "Conectando…") : dev.connected ? "Conectado" : "Desconectado"}
+                      :selected {dev.connected} :color {dev.connected ? "accent" : "text"}
+                      :onclick {dev.connected ? "desktopctl bluetooth disconnect ${dev.mac}" : "desktopctl bluetooth connect ${dev.mac}"}
+                      :tooltip {dev.connected ? "Clic para desconectar" : "Clic para conectar"}
+              (label :class "bt-battery" :visible {dev.battery >= 0} :text "󰁹 ${dev.battery}%")
+              (icon-button :icon "󰩺" :class "flat" :onclick "desktopctl bluetooth forget ${dev.mac}" :tooltip "Olvidar dispositivo")))))
+      ;; Cercanos
+      (box :orientation "v" :space-evenly false
+        (section-title :text "Dispositivos cercanos"
+          (icon-button :icon {bluetooth.scanning == true ? "󰑓" : "󰑐"} :class "flat ${bluetooth.scanning == true ? 'spinning' : ''}"
+                       :onclick "desktopctl bluetooth scan" :tooltip "Buscar dispositivos"))
+        (label :class "net-state" :xalign 0 :visible {arraylength(bluetooth.nearby ?: []) == 0}
+               :text {bluetooth.scanning == true ? "Buscando…" : "Pulsa buscar para ver dispositivos cercanos"})
+        ;; el marco va fuera del scroll: dentro, el recorte del desplazamiento se come el borde inferior
+        (box :class "card list" :visible {arraylength(bluetooth.nearby ?: []) > 0}
+          (scroll :vscroll true :hscroll false :height 170 :hexpand true
+          (box :orientation "v" :space-evenly false
+            (for dev in {bluetooth.nearby ?: []}
+              (list-row :icon {dev.glyph} :title {dev.name}
+                        :subtitle {bluetooth.busy == dev.mac ? "Emparejando…" : ""}
+                        :onclick "desktopctl bluetooth connect ${dev.mac}" :tooltip "Emparejar y conectar")))))))
+    (eventbox :cursor "pointer"
+      (button :class "list-row more" :onclick "desktopctl bluetooth editor"
+        (box :space-evenly false :spacing 12
+          (label :class "glyph" :text "󰒓")
+          (label :hexpand true :halign "start" :text "Otras opciones")
+          (label :class "glyph" :text "󰅂"))))
+    (label :class "status-line ${bluetooth.error != '' ? 'error' : ''}" :xalign 0 :wrap true
+           :visible {(bluetooth.status ?: "") != "" || (bluetooth.error ?: "") != ""}
+           :text {(bluetooth.error ?: "") != "" ? bluetooth.error : bluetooth.status})))

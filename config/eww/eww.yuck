@@ -13,6 +13,7 @@
 (include "./widgets/settings/settings.yuck")
 (include "./widgets/power/power.yuck")
 (include "./widgets/network/network.yuck")
+(include "./widgets/bluetooth/bluetooth.yuck")
 (include "./widgets/audio/audio.yuck")
 (include "./widgets/updates/updates.yuck")
 (include "./widgets/media/media.yuck")

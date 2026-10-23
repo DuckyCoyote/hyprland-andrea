@@ -10,6 +10,7 @@ Ningún archivo escrito a mano contiene colores, fuentes ni tamaños.
   config/kitty/theme.conf                    terminal (incluido desde kitty.conf)
 """
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -55,6 +56,13 @@ def _hex(c: str) -> str:
     return c.lstrip("#")
 
 
+def window_gaps(ap: dict) -> tuple[int, int]:
+    """(gaps_in, hueco) del compositor. Entre dos ventanas quedan 2 × gaps_in: ese mismo hueco se
+    usa hacia los bordes de la pantalla (gaps_out) y alrededor de la barra ($window-gap)."""
+    gaps_in = max(2, int(ap.get("spacing", 8)) // 2)
+    return gaps_in, gaps_in * 2
+
+
 # --------------------------------------------------------------------------- Eww
 def eww_scss(ctx: dict) -> str:
     ap, pal = ctx["ap"], ctx["pal"]
@@ -72,6 +80,7 @@ def eww_scss(ctx: dict) -> str:
         f"$font-weight: {int(ap.get('font_weight', 400))};",
         f"$radius: {int(ap.get('radius', 10))}px;",
         f"$spacing: {int(ap.get('spacing', 8))}px;",
+        f"$window-gap: {window_gaps(ap)[1]}px;",
         f"$border-width: {int(ap.get('border_width', 1))}px;",
         f"$surface-opacity: {opacity:.2f};",
         f"$shadows: {'true' if _bool(ap.get('shadows', True)) else 'false'};",
@@ -108,7 +117,6 @@ def _lua(value, indent: int = 0) -> str:
 def hypr_theme(ctx: dict) -> str:
     ctx = system_ctx(ctx)
     ap, pal = ctx["ap"], ctx["pal"]
-    spacing = int(ap.get("spacing", 8))
     opacity = float(ap.get("opacity", 0.92)) if _bool(ap.get("transparency", False)) else 1.0
     data = {
         "name": ctx["theme_id"],
@@ -120,8 +128,8 @@ def hypr_theme(ctx: dict) -> str:
         "background": f"rgb({_hex(pal['base'])})",
         "rounding": int(ap.get("radius", 10)),
         "border_size": 2,
-        "gaps_in": max(2, spacing // 2),
-        "gaps_out": spacing + 2,
+        "gaps_in": window_gaps(ap)[0],
+        "gaps_out": window_gaps(ap)[1],
         "shadows": _bool(ap.get("shadows", True)),
         "animations": _bool(ap.get("animations", True)),
         "inactive_opacity": round(min(1.0, opacity + 0.03), 2),
@@ -407,17 +415,22 @@ def set_wallpaper(ctx: dict | None = None) -> None:
 
 
 def font_families() -> list[str]:
-    """Fuentes monoespaciadas instaladas (las Nerd Font primero)."""
+    """Fuentes instaladas para la interfaz: Nerd Font primero, luego monoespaciadas y el resto.
+    Se omiten las variantes de Noto por escritura, emojis y símbolos, que solo sirven de respaldo."""
     try:
-        out = subprocess.run(["fc-list", ":spacing=mono", "family"], capture_output=True, text=True, timeout=10).stdout
+        out = subprocess.run(["fc-list", ":", "family", "spacing"], capture_output=True, text=True, timeout=10).stdout
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return []
-    fams = set()
+    fams: dict[str, bool] = {}  # familia → monoespaciada
     for line in out.splitlines():
-        name = line.split(",")[0].strip()
-        if name and not any(x in name for x in (" Propo", " NFP", " NFM", " Mono NF", "Symbols")):
-            fams.add(name)
-    return sorted(fams, key=lambda f: ("Nerd Font" not in f, f.lower()))[:40]
+        name, _, attrs = line.partition(":")
+        name = name.split(",")[0].strip()
+        if not name or any(x in name for x in (" Propo", " NFP", " NFM", " Mono NF", "Symbols", "Emoji")):
+            continue
+        if re.match(r"Noto (Sans |Serif )?(?!Mono$)\S", name) and name not in ("Noto Sans", "Noto Serif", "Noto Sans Mono"):
+            continue
+        fams[name] = fams.get(name, False) or "spacing=100" in attrs
+    return sorted(fams, key=lambda f: ("Nerd Font" not in f, not fams[f], f.lower()))[:80]
 
 
 def log_changes(changed: list[Path]) -> None:

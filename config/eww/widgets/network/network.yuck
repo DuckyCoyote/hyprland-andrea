@@ -39,8 +39,10 @@
       (section-title :text "Redes disponibles"
         (icon-button :icon {network.scanning == true ? "󰑓" : "󰑐"} :class "flat ${network.scanning == true ? 'spinning' : ''}"
                      :onclick "desktopctl network scan" :tooltip "Buscar redes"))
-      (scroll :vscroll true :hscroll false :height 230
-        (box :class "card list" :orientation "v" :space-evenly false
+      ;; el marco va fuera del scroll: dentro, el recorte del desplazamiento se come el borde inferior
+      (box :class "card list"
+        (scroll :vscroll true :hscroll false :height 230 :hexpand true
+        (box :orientation "v" :space-evenly false
           (for net in {network.networks ?: []}
             (box :orientation "v" :space-evenly false
               (list-row :icon {net.glyph} :title {net.ssid}
@@ -55,7 +57,7 @@
                 (input :class "input" :hexpand true :password true
                        :onaccept "desktopctl network password '${net.ssid}' '{}'")
                 (icon-button :icon "󰅖" :class "flat" :tooltip "Cancelar"
-                             :onclick "desktopctl network cancel")))))))
+                             :onclick "desktopctl network cancel"))))))))
     (eventbox :cursor "pointer"
       (button :class "list-row more" :onclick "desktopctl network editor"
         (box :space-evenly false :spacing 12

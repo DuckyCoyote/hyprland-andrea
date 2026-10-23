@@ -89,6 +89,34 @@
         (eventbox :cursor "pointer"
           (button :class "accent-dot ${a.selected ? 'selected' : ''}" :style "background-color: ${a.hex};"
                   :onclick "desktopctl appearance set accent ${a.name}" :tooltip {a.name}))))
+    (section-title :text "Barra superior")
+    (box :class "bar-styles" :space-evenly true :spacing 8
+      (for b in {appearance.bar_styles ?: []}
+        (eventbox :cursor "pointer"
+          (button :class "bar-card ${b.selected ? 'selected' : ''}" :onclick "desktopctl appearance set bar_style ${b.id}"
+            (box :orientation "v" :space-evenly false :spacing 6
+              ;; miniatura: tres cápsulas separadas, una franja continua o la franja arcade
+              (box :class "bar-preview" :space-evenly false :spacing 6
+                (box :class "bar-mini" :visible {b.id == "capsules"} :width 34)
+                (box :class "bar-mini" :visible {b.id == "capsules"} :hexpand true)
+                (box :class "bar-mini" :visible {b.id == "capsules"} :width 54)
+                (box :class "bar-mini" :visible {b.id == "rectangle"} :hexpand true :space-evenly false :spacing 4
+                  (box :class "bar-mini-dot accent")
+                  (box :class "bar-mini-dot")
+                  (box :class "bar-mini-dot")
+                  (box :hexpand true)
+                  (box :class "bar-mini-dot"))
+                ;; arcade: franja con islas a los lados y el reproductor al centro
+                (box :class "bar-mini" :visible {b.id == "arcade"} :hexpand true :space-evenly false :spacing 4
+                  (box :class "bar-mini-dot accent")
+                  (box :class "bar-mini-dot island" :width 18)
+                  (box :hexpand true)
+                  (box :class "bar-mini-dot green")
+                  (box :class "bar-mini-dot island" :width 14)
+                  (box :hexpand true)
+                  (box :class "bar-mini-dot island" :width 18)
+                  (box :class "bar-mini-dot red")))
+              (label :class "theme-name" :text {b.name}))))))
     (section-title :text "Fondo de pantalla"
       (box :space-evenly false
         (icon-button :icon "󰉋" :class "flat" :onclick "desktopctl appearance open-wallpaper-dir"

@@ -12,7 +12,7 @@ import time
 from .. import config, eww, paths
 from ..daemon import Source
 
-POPUPS = {"launcher", "settings", "power", "network", "audio", "updates", "media", "weather", "calendar",
+POPUPS = {"launcher", "settings", "power", "network", "bluetooth", "audio", "updates", "media", "weather", "calendar",
           "notifications", "keymap", "switcher"}
 # Modo de teclado del compositor mientras el popup está abierto (por defecto: Escape cierra)
 KEY_MODES = {"switcher": "switcher", "power": "power"}

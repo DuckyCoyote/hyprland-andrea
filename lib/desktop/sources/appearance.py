@@ -12,6 +12,7 @@ from ..util import Debouncer, have, run
 
 INT_KEYS = {"font_size": (8, 24), "font_weight": (100, 900), "radius": (0, 24), "spacing": (2, 20), "border_width": (0, 4)}
 BOOL_KEYS = {"transparency", "shadows", "animations"}
+BAR_STYLES = {"capsules": "Cápsulas", "rectangle": "Rectángulo", "arcade": "Arcade"}
 ACCENTS = ["mauve", "lavender", "blue", "sapphire", "sky", "teal", "green", "yellow", "peach", "maroon", "red", "pink", "flamingo", "rosewater"]
 
 
@@ -27,12 +28,12 @@ class AppearanceSource(Source):
         self._apply_soon = Debouncer(0.5, self.apply)
 
     async def start(self) -> None:
-        self.fonts = await asyncio.to_thread(render.font_families)
         await self._scan()
         await self.apply(reload_all=False)
 
     async def _scan(self) -> None:
-        """Relee la carpeta de fondos y los temas de cursor (genera miniaturas nuevas)."""
+        """Relee las fuentes, la carpeta de fondos y los temas de cursor (genera miniaturas nuevas)."""
+        self.fonts = await asyncio.to_thread(render.font_families)
         folder = await asyncio.to_thread(previews.wallpaper_dir, config.load())
         self.wall_dir = str(folder)
         self.walls = await asyncio.to_thread(previews.wallpapers, folder)
@@ -60,6 +61,8 @@ class AppearanceSource(Source):
             "wallpaper": render.wallpaper_path(ctx),
             "wallpaper_dir": self.wall_dir,
             "wallpaper_rows": _rows([{**w, "selected": w["path"] == render.wallpaper_path(ctx)} for w in self.walls], 3),
+            "bar_style": _bar_style(ap),
+            "bar_styles": [{"id": k, "name": v, "selected": k == _bar_style(ap)} for k, v in BAR_STYLES.items()],
             "cursor_theme": ap.get("cursor_theme", ""),
             "cursor_size": int(ap.get("cursor_size", 24)),
             "cursor_rows": _rows([{**c, "selected": c["name"] == ap.get("cursor_theme", "")} for c in self.cursors], 3),
@@ -113,6 +116,15 @@ class AppearanceSource(Source):
             if value not in ACCENTS:
                 return f"acento desconocido: {value}"
             val = value
+        elif key == "bar_style":
+            # la barra elige su diseño en yuck según appearance.bar_style: basta con publicarlo
+            if value not in BAR_STYLES:
+                return f"estilo de barra desconocido: {value}"
+            if _bar_style(current) == value:
+                return "sin cambios"
+            config.set_appearance(key, value)
+            self._publish()
+            return f"bar_style = {value}"
         elif key == "icon_theme":
             val = value
         elif key == "wallpaper":
@@ -157,7 +169,7 @@ class AppearanceSource(Source):
     async def cmd_rescan(self) -> str:
         await self._scan()
         self._publish()
-        return f"{len(self.walls)} fondos en {self.wall_dir}, {len(self.cursors)} temas de cursor"
+        return f"{len(self.fonts)} fuentes, {len(self.walls)} fondos en {self.wall_dir}, {len(self.cursors)} temas de cursor"
 
     async def cmd_open_wallpaper_dir(self) -> None:
         from ..util import spawn_detached
@@ -186,3 +198,8 @@ def _rows(items: list, size: int) -> list:
                 "c2": "#000000", "c3": "#000000"}
         rows[-1] += [dict(hole) for _ in range(size - len(rows[-1]))]
     return rows
+
+
+def _bar_style(ap: dict) -> str:
+    style = ap.get("bar_style", "capsules")
+    return style if style in BAR_STYLES else "capsules"

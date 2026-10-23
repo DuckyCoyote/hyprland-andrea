@@ -24,7 +24,7 @@ ctx.S = load("generated.settings", {
 ctx.T = load("generated.theme", {
     active_border = "rgb(cba6f7)", inactive_border = "rgb(313244)", urgent_border = "rgb(f38ba8)",
     shadow = "rgba(11111baa)", background = "rgb(1e1e2e)", rounding = 10, border_size = 2,
-    gaps_in = 4, gaps_out = 10, shadows = true, animations = true,
+    gaps_in = 4, gaps_out = 8, shadows = true, animations = true,
     active_opacity = 1.0, inactive_opacity = 1.0, font = "JetBrainsMono Nerd Font",
 })
 
