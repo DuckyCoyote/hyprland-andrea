@@ -79,5 +79,6 @@ Para soportar otro programa (p. ej. rofi o GTK), añade una función a `render.p
 
 Temas incluidos: Catppuccin (Mocha, Macchiato, Frappé, Latte), Monocromático (oscuro), Monocromático
 claro (barra clara + sistema monocromo oscuro), Gruvbox (oscuro y claro, con los acentos «faded»
-en el claro) y Nordic (paleta de [nordic.nvim](https://github.com/AlexvZyl/nordic.nvim), acento `sky`). Las aplicaciones Qt/KDE no se tiñen: siguen el esquema de `~/.config/kdeglobals`
+en el claro), Nordic (paleta de [nordic.nvim](https://github.com/AlexvZyl/nordic.nvim), acento `sky`) y Tokyo Night
+(la misma paleta que el `override_palette` de monokai-pro de la configuración de Neovim, acento `blue`). Las aplicaciones Qt/KDE no se tiñen: siguen el esquema de `~/.config/kdeglobals`
 (compartido con la sesión de Plasma).

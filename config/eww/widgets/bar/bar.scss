@@ -105,8 +105,11 @@
   button { @include transition(opacity); }
   button:hover { opacity: 0.8; }
   // relleno a la derecha: los glifos Nerd Font son más anchos que su avance y GTK los recorta
+  // cada símbolo con su color (clases c-*); el de paquetes en verde Hack The Box y el de volumen en verde Monokai
   .rect-glyph { font-size: $glyph-size - 1px; padding: 0 4px 0 1px; }
-  .rect-glyph.busy { color: $overlay1; }
+  .rect-glyph.pkg { color: $htb-green; }
+  .rect-glyph.vol { color: $monokai-green; }
+  .rect-glyph.busy, .rect-glyph.off { color: $overlay1; }
   .rect-value { font-size: $font-size - 1px; }
 }
 .rect-launcher .rect-glyph { color: $accent; font-size: $glyph-size + 1px; }

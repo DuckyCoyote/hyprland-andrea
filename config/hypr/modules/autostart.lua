@@ -30,6 +30,12 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("sh -c 'command -v awww-daemon >/dev/null && awww-daemon & sleep 1; " .. ctx.ctl("wallpaper") .. "'")
     hl.exec_cmd("hypridle")
 
+    -- Iluminación RGB: perfil «blue» de OpenRGB (azul puro en RAM y placa). Sin servidor:
+    -- el cliente detecta los dispositivos (~10 s), aplica el perfil y termina.
+    if exists(os.getenv("HOME") .. "/.config/OpenRGB/profiles/blue.json") then
+        hl.exec_cmd("openrgb --noautoconnect --profile blue")
+    end
+
     -- Agente de autenticación (polkit): el que haya instalado
     if exists("/usr/lib/hyprpolkitagent/hyprpolkitagent") then
         hl.exec_cmd("/usr/lib/hyprpolkitagent/hyprpolkitagent")

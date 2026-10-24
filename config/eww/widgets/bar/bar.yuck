@@ -238,7 +238,7 @@
       (button :onclick "desktopctl audio mute source" :onrightclick "desktopctl popup open audio ${monitor} in"
               :tooltip "Micrófono: ${audio.source?.description ?: ''}"
         (box :space-evenly false :spacing 6
-          (label :class "rect-glyph ${audio.source?.muted == true ? 'c-red' : ''}" :text {audio.source?.muted == true ? "󰍭" : "󰍬"})
+          (label :class "rect-glyph ${audio.source?.muted == true ? 'c-red' : 'c-teal'}" :text {audio.source?.muted == true ? "󰍭" : "󰍬"})
           (label :class "rect-value" :limit-width 12 :text {audio.source?.description ?: ""})
           (label :class "rect-value" :visible {audio.source?.muted != true} :text {audio.source?.volume ?: ""}))))
     ;; Clima
@@ -249,36 +249,35 @@
           (label :class "rect-value" :text "${weather.temp ?: '--'}${weather.unit ?: '°C'}"))))
     (box :visible {matches(modules, ",tray,")} :class "tray"
       (systray :spacing 14 :icon-size 16 :prepend-new true))
-    ;; Configuración (sustituye a los indicadores de disco, CPU y memoria)
-    (eventbox :cursor "pointer"
-      (button :onclick "desktopctl popup toggle settings ${monitor} system" :tooltip "Configuración"
-        (label :class "rect-glyph" :text "󰒓")))
-    ;; Grupo de estado: volumen, red, Bluetooth, notificaciones y actualizaciones
+    ;; Grupo de estado: volumen, red, Bluetooth, notificaciones, actualizaciones, configuración y energía
     (box :class "rect-status" :space-evenly false :spacing 14
       (eventbox :cursor "pointer" :visible {audio.available == true} :onscroll "desktopctl audio step sink {}"
         (button :onclick "desktopctl popup toggle audio ${monitor}" :onrightclick "desktopctl audio mute sink"
                 :tooltip "${audio.sink?.description ?: ''}: ${audio.sink?.muted == true ? 'silenciado' : (audio.sink?.volume ?: 0) + '%'}"
-          (label :class "rect-glyph ${audio.sink?.muted == true ? 'c-red' : ''}" :text {audio.sink?.glyph ?: "󰕾"})))
+          (label :class "rect-glyph ${audio.sink?.muted == true ? 'c-red' : 'vol'}" :text {audio.sink?.glyph ?: "󰕾"})))
       (eventbox :cursor "pointer" :visible {network.available == true}
         (button :onclick "desktopctl popup toggle network ${monitor}"
                 :tooltip {network.kind == "wifi" ? "Wi-Fi: ${network.ssid}" : network.kind == "ethernet" ? "Ethernet: ${network.ethernet?.connection}" : "Sin conexión"}
-          (label :class "rect-glyph ${network.kind == 'disconnected' ? 'c-red' : ''}" :text {network.glyph ?: "󰤭"})))
+          (label :class "rect-glyph ${network.kind == 'disconnected' ? 'c-red' : 'c-blue'}" :text {network.glyph ?: "󰤭"})))
       (eventbox :cursor "pointer" :visible {bluetooth.available == true}
         (button :onclick "desktopctl popup toggle bluetooth ${monitor}" :onrightclick "desktopctl bluetooth toggle-power"
                 :tooltip {bluetooth.powered != true ? "Bluetooth desactivado" : (bluetooth.connected_count ?: 0) > 0 ? "Bluetooth: ${bluetooth.connected_names}" : "Bluetooth activado"}
-          (label :class "rect-glyph ${bluetooth.powered == true ? '' : 'c-overlay2'}" :text {bluetooth.glyph ?: "󰂯"})))
+          (label :class "rect-glyph ${bluetooth.powered == true ? 'c-sapphire' : 'off'}" :text {bluetooth.glyph ?: "󰂯"})))
       (eventbox :cursor "pointer"
         (button :onclick "desktopctl popup toggle notifications ${monitor}" :onrightclick "desktopctl notifications dnd toggle"
                 :tooltip {notifications.dnd == true ? "No molestar activado" : "${notifications.count ?: 0} notificaciones"}
           (box :space-evenly false :spacing 6
-            (label :class "rect-glyph c-sky" :text {notifications.dnd == true ? "󰂛" : "󰂚"})
+            (label :class "rect-glyph ${notifications.dnd == true ? 'off' : 'c-peach'}" :text {notifications.dnd == true ? "󰂛" : "󰂚"})
             (label :class "rect-value" :text {notifications.count ?: 0}))))
       (eventbox :cursor "pointer" :visible {updates.available ?: true}
         (button :onclick "desktopctl popup toggle updates ${monitor}" :onrightclick "desktopctl updates refresh"
                 :tooltip {updates.status == "checking" ? "Buscando actualizaciones…" : "${updates.count} actualizaciones pendientes"}
           (box :space-evenly false :spacing 6
-            (label :class "rect-glyph ${updates.status == 'checking' ? 'busy' : ''}" :text "󰏗")
+            (label :class "rect-glyph pkg ${updates.status == 'checking' ? 'busy' : ''}" :text "󰏗")
             (label :class "rect-value" :text {updates.count ?: 0}))))
+      (eventbox :cursor "pointer"
+        (button :onclick "desktopctl popup toggle settings ${monitor} system" :tooltip "Configuración"
+          (label :class "rect-glyph c-lavender" :text "󰒓")))
       (eventbox :cursor "pointer"
         (button :onclick "desktopctl popup toggle power ${monitor}" :tooltip "Energía"
           (label :class "rect-glyph c-red" :text "󰐥"))))))
