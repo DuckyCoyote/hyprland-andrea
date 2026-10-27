@@ -7,6 +7,7 @@ def all_sources():
     from .appearance import AppearanceSource
     from .audio import AudioSource
     from .bluetooth import BluetoothSource
+    from .displays import DisplaysSource
     from .media import MediaSource
     from .network import NetworkSource
     from .notifications import NotificationsSource
@@ -18,5 +19,5 @@ def all_sources():
     from .wm import WmSource
 
     # wm primero: el resto (popups, energía) depende del adaptador del compositor
-    return [WmSource, PopupSource, AppearanceSource, AudioSource, NetworkSource, BluetoothSource, MediaSource,
+    return [WmSource, DisplaysSource, PopupSource, AppearanceSource, AudioSource, NetworkSource, BluetoothSource, MediaSource,
             UpdatesSource, WeatherSource, SystemSource, AppsSource, NotificationsSource, SwitcherSource]

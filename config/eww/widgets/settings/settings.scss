@@ -141,3 +141,19 @@ progress.meter, .meter {
   .cursor-name { font-size: $font-sm; }
   &.selected { border-width: 2px; }
 }
+
+// Pantallas: modo de proyección (como Win+P) y tarjetas de cada pantalla
+.proj-card {
+  padding: 10px 6px;
+  border-radius: $radius;
+  background-color: $bg-alt;
+  border: $border-width solid $border;
+  @include transition(background-color, border-color);
+  &:hover { background-color: $hover; }
+  &.selected { border: 2px solid $accent; background-color: rgba($accent, 0.1); }
+  &.unavailable { opacity: 0.4; }
+  .proj-glyph { font-size: $font-size + 12px; }
+  .proj-label { font-size: $font-sm; }
+  &.selected .proj-glyph { color: $accent; }
+}
+.display-card.off { opacity: 0.6; }

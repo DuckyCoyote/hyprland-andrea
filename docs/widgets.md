@@ -7,7 +7,9 @@ tokens de `styles/tokens/` — nunca colores, fuentes ni tamaños literales.
 | Widget | Ventana | Datos (tema del daemon) | Acciones (`desktopctl …`) |
 |---|---|---|---|
 | Barra | `bar` (una por monitor) | `wm`, `audio`, `network`, `media`, `updates`, `weather`, `system` | `wm focus/scroll`, `popup toggle …` |
+| Barra inferior | `bar-bottom` (estilo «Inferior», `bar_style: taskbar`; la abre desktopd en lugar de `bar`) | `wm` (incluye `wm.tasks`: accesos rápidos fijados + apps abiertas), `weather` y los de la barra | `wm task <clase>`, `system quick <n>`, `popup toggle …` |
 | Lanzador | `launcher` | `apps` | `apps launch/favorite/rescan` |
+| Menú de inicio | `startmenu` (con la barra inferior: Super+R y el botón de inicio lo abren en lugar del lanzador) | `apps`, `system` | `apps launch/favorite` |
 | Configuración | `settings` | `appearance`, `system`, `wm` + los de audio/red | `appearance set/reset/apply`, `system …` |
 | Energía | `power` | `system`, `popup.confirm` | `system power lock|suspend|hibernate|logout|reboot|poweroff` |
 | Red | `network` | `network` | `network toggle-wifi/scan/connect/password/disconnect/editor` |
@@ -90,3 +92,18 @@ Ejemplo: indicador de temperatura de CPU.
    `desktopctl popup toggle cputemp ${monitor}`.
 
 Reinicia con `desktopctl restart` y comprueba el estado con `desktopctl get cputemp`.
+
+## Barra inferior y menú de inicio
+
+Configuración → Apariencia → Barra → «Inferior» cambia a una barra de tareas abajo (estilo
+Windows 11 con islas como las cápsulas): clima y espacios compactos a la izquierda; en el centro
+el botón de inicio y las apps (primero los accesos rápidos de `quick_launch`, con un punto si están
+abiertos, y después el resto de apps abiertas); a la derecha reproductor, bandeja, indicadores,
+fecha y hora, notificaciones y energía. Clic en una app abierta la enfoca (otro clic pasa a su
+siguiente ventana); clic central en una fijada abre otra ventana.
+
+Con este estilo los paneles se abren abajo, junto a su botón (`popup.py` pasa `--anchor`/`--pos`
+a `eww open`), y el lanzador es el menú de inicio: buscador, «Fijadas» (las favoritas; clic derecho
+fija o desfija), «Recientes», «Todas las apps» por letra y un pie con usuario, bloqueo,
+configuración y energía.
+

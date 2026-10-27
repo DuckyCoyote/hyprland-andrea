@@ -24,6 +24,7 @@ USER_SETTINGS = USER_CONFIG_DIR / "settings.json"
 USER_THEMES_DIR = USER_CONFIG_DIR / "themes"
 STATE_DIR = STATE_HOME / APP
 APPEARANCE_STATE = STATE_DIR / "appearance.json"
+DISPLAY_STATE = STATE_DIR / "displays.json"
 LAUNCH_HISTORY = STATE_DIR / "launch-history.json"
 UI_STATE = STATE_DIR / "ui.json"
 CACHE_DIR = CACHE_HOME / APP

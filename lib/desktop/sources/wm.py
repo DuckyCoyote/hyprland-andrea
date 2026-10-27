@@ -1,5 +1,7 @@
 """Tema `wm`: monitores, espacios de trabajo por monitor y gestión de las barras."""
 import asyncio
+import os
+import shlex
 import time
 
 from .. import config, eww
@@ -67,6 +69,7 @@ class WmSource(Source):
         self._refresh()
         if kind == "monitors":
             self._monitors_changed()
+            self.hub.sources["displays"].on_monitors()
 
     def ordered_monitors(self, monitors: list[dict]) -> list[dict]:
         """Orden: los declarados en settings.json (el principal primero), después el resto por posición."""
@@ -84,7 +87,8 @@ class WmSource(Source):
         existing = {w["id"]: w for w in await self.wm.workspaces()}
         # iconos de las aplicaciones abiertas en cada espacio (barra «rectángulo»): uno por clase
         apps: dict[int, list[str]] = {}
-        for c in await self.wm.clients():
+        clients = await self.wm.clients()
+        for c in clients:
             icon = await self.window_icon(c["class"]) if c["class"] else ""
             if icon and icon not in apps.setdefault(c["workspace"], []):
                 apps[c["workspace"]].append(icon)
@@ -119,14 +123,40 @@ class WmSource(Source):
                                     "name": name[:1].upper() + name[1:],
                                     "icon": await self.window_icon(cls) if cls else ""}
 
+        focused = next((m["name"] for m in self.monitors if m["focused"]), "")
         self.publish({
             "wm": self.wm.name,
             "windows": windows,
+            "tasks": await self.tasks(clients, windows.get(focused, {}).get("class", "")),
             "has_workspaces": self.wm.has_workspaces,
-            "focused": next((m["name"] for m in self.monitors if m["focused"]), ""),
+            "focused": focused,
             "monitors": self.monitors,
             "workspaces": result,
         })
+
+    async def tasks(self, clients: list[dict], focused_class: str) -> list[dict]:
+        """Apps de la barra inferior: primero los accesos rápidos (fijados, marcados si están
+        abiertos) y después el resto de apps abiertas, una por clase de ventana."""
+        settings = config.load()
+        by_class: dict[str, list[dict]] = {}
+        for c in clients:  # ya vienen ordenadas por uso reciente
+            if c["class"]:
+                by_class.setdefault(c["class"], []).append(c)
+        items, used = [], set()
+        for q in (self.hub.get("system") or {}).get("quick_launch", []):
+            key = _command_key(config.resolve_app(settings, q.get("exec", "")))
+            cls = next((k for k in by_class if k not in used and _same_app(k, key)), "")
+            used.add(cls)
+            items.append({**q, "pinned": True, "class": cls, "count": len(by_class.get(cls, [])),
+                          "focused": bool(cls) and cls == focused_class})
+        for cls, wins in by_class.items():
+            if cls in used:
+                continue
+            image = await self.window_icon(cls)
+            items.append({"index": -1, "name": cls, "tooltip": wins[0]["title"] or cls, "exec": "",
+                          "image": image, "glyph": "" if image else "\U000f05af", "pinned": False,
+                          "class": cls, "count": len(wins), "focused": cls == focused_class})
+        return items
 
     async def window_icon(self, cls: str) -> str:
         """Ruta del icono de una clase de ventana (resuelto una vez y guardado en caché)."""
@@ -159,8 +189,11 @@ class WmSource(Source):
 
     async def _sync_bars(self, retry: bool = True) -> None:
         await self.refresh()
-        bar = config.load().get("bar", {})
+        settings = config.load()
+        bar = settings.get("bar", {})
         default_modules = bar.get("modules", [])
+        # el estilo «Inferior» es otra ventana (anclada abajo); los demás comparten `bar`
+        window = "bar-bottom" if settings.get("appearance", {}).get("bar_style") == "taskbar" else "bar"
         wanted = {}
         for m in self.monitors:
             modules = bar.get("per_monitor", {}).get(m["name"], default_modules)
@@ -172,13 +205,13 @@ class WmSource(Source):
                 await asyncio.sleep(1)
                 await self._sync_bars(retry=False)
             return
-        current = {wid for wid, name in active.items() if name == "bar"}
-        stale = current - set(wanted)
+        current = {wid: name for wid, name in active.items() if name in ("bar", "bar-bottom")}
+        stale = {wid for wid, name in current.items() if wid not in wanted or name != window}
         if stale:
             await asyncio.to_thread(eww.close, *stale)
         for wid, (mon, modules) in wanted.items():
-            if wid not in current:
-                await asyncio.to_thread(eww.open_window, "bar", wid, mon["screen"],
+            if wid not in current or wid in stale:
+                await asyncio.to_thread(eww.open_window, window, wid, mon["screen"],
                                         {"monitor": mon["name"], "modules": modules})
         self.bars = set(wanted)
 
@@ -230,6 +263,17 @@ class WmSource(Source):
     async def cmd_focus(self, workspace_id: str) -> None:
         await self.wm.focus_workspace(int(workspace_id))
 
+    async def cmd_task(self, cls: str) -> None:
+        """Clic en una app abierta de la barra inferior: la enfoca; si ya tenía el foco, pasa a
+        su siguiente ventana."""
+        wins = [c for c in await self.wm.clients() if c["class"] == cls]
+        if not wins:
+            return
+        data = self.hub.get("wm") or {}
+        focused = data.get("windows", {}).get(data.get("focused", ""), {}).get("class", "")
+        target = wins[1] if len(wins) > 1 and focused == cls else wins[0]
+        await self.wm.focus_window(target["address"])
+
     async def cmd_scroll(self, monitor: str, direction: str) -> None:
         """Rueda del ratón sobre los espacios de la barra: siguiente/anterior dentro del monitor."""
         data = self.hub.get("wm") or {}
@@ -255,3 +299,21 @@ class WmSource(Source):
 
     async def cmd_reload(self) -> None:
         await self.wm.reload()
+
+
+def _command_key(command: str) -> str:
+    """Programa de un comando ('gtk-launch brave-browser' -> 'brave-browser', '/usr/bin/kitty -e x' -> 'kitty')."""
+    try:
+        parts = shlex.split(command)
+    except ValueError:
+        parts = command.split()
+    if not parts:
+        return ""
+    word = parts[1] if parts[0] == "gtk-launch" and len(parts) > 1 else os.path.basename(parts[0])
+    return word.lower().removesuffix(".desktop")
+
+
+def _same_app(cls: str, key: str) -> bool:
+    """¿La clase de ventana corresponde al programa? (org.kde.dolphin ~ dolphin)."""
+    cls = cls.lower()
+    return bool(key) and key in (cls, cls.rsplit(".", 1)[-1])

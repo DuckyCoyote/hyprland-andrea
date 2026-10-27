@@ -115,6 +115,45 @@ class Hyprland(WindowManager):
             })
         return out
 
+    async def outputs(self) -> list[dict] | None:
+        mons = await self.query("monitors all")
+        if not isinstance(mons, list):
+            return None
+        names = {str(m.get("id")): m["name"] for m in mons}
+        return [{
+            "name": m["name"], "model": m.get("model", ""),
+            "enabled": not m.get("disabled"),
+            # mirrorOf es el id del monitor de origen ("none" si no duplica)
+            "mirror_of": names.get(str(m.get("mirrorOf")), ""),
+            "width": m.get("width", 0), "height": m.get("height", 0),
+            "refresh": round(m.get("refreshRate", 0)), "scale": m.get("scale", 1),
+            "x": m.get("x", 0), "y": m.get("y", 0), "focused": bool(m.get("focused")),
+        } for m in mons]
+
+    async def configure_outputs(self, specs: list[dict]) -> None:
+        current = {o["name"]: o for o in await self.outputs() or []}
+        # primero las que se encienden, después las duplicadas (su origen ya está encendido) y al
+        # final las que se apagan: nunca queda todo apagado
+        order = {"on": 0, "mirror": 1, "off": 2}
+        for s in sorted(specs, key=lambda s: order[s["state"]]):
+            rule = {"output": s["name"], "disabled": s["state"] == "off", "mirror": ""}
+            if s["state"] == "mirror":
+                rule.update(mode="preferred", position="auto", scale="auto", mirror=s["mirror"])
+            elif s["state"] == "on":
+                rule.update(mode=s.get("mode") or "preferred", position=s.get("position") or "auto-right",
+                            scale=str(s.get("scale") or "auto"))
+            # Quitar el duplicado a una salida encendida la deja sin anunciar a los clientes
+            # (Eww y awww no la ven): se apaga primero y se enciende ya con su regla normal.
+            if s["state"] == "on" and current.get(s["name"], {}).get("mirror_of"):
+                await self._eval(f'hl.monitor({{ output = "{s["name"]}", disabled = true, mirror = "" }})')
+                await asyncio.sleep(0.5)
+            await self._eval(f"hl.monitor({_lua_table(rule)})")
+
+    async def _eval(self, lua: str) -> None:
+        reply = (await self.request(f"/eval {lua}")).strip()
+        if reply != "ok":
+            log(f"hyprland eval falló: {lua} → {reply}")
+
     async def workspaces(self) -> list[dict]:
         out = []
         for w in await self.query("workspaces"):
@@ -189,6 +228,14 @@ class Hyprland(WindowManager):
             await run("hyprshutdown")
         else:
             await self.dispatch("hl.dsp.exit()", "exit")
+
+
+def _lua_table(d: dict) -> str:
+    def value(v) -> str:
+        if isinstance(v, bool):
+            return "true" if v else "false"
+        return json.dumps(v) if isinstance(v, str) else str(v)
+    return "{ " + ", ".join(f"{k} = {value(v)}" for k, v in d.items()) + " }"
 
 
 def _int(s: str) -> int:

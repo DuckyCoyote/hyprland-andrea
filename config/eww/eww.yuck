@@ -8,8 +8,10 @@
 (include "./components/common.yuck")
 
 (include "./widgets/bar/bar.yuck")
+(include "./widgets/taskbar/taskbar.yuck")
 (include "./widgets/common/popups.yuck")
 (include "./widgets/launcher/launcher.yuck")
+(include "./widgets/startmenu/startmenu.yuck")
 (include "./widgets/settings/settings.yuck")
 (include "./widgets/power/power.yuck")
 (include "./widgets/network/network.yuck")

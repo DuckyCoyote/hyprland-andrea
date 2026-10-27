@@ -1,0 +1,151 @@
+;; ─────────────────────────────────────────────────────────────────────────────
+;; Barra inferior (Configuración → Apariencia → Barra: «Inferior», bar_style taskbar).
+;; Una sola franja con islas como las cápsulas, al estilo de la barra de tareas de Windows 11:
+;;   izquierda: clima y espacios de trabajo (compactos, como «Rectángulo»)
+;;   centro:    botón de inicio (menú startmenu) y apps: fijadas (quick_launch) + abiertas
+;;   derecha:   reproductor, bandeja, indicadores, fecha/hora, notificaciones y energía
+;; desktopd abre esta ventana en lugar de `bar` (wm.py) y los popups se abren abajo (popup.py).
+;; ─────────────────────────────────────────────────────────────────────────────
+
+(defwindow bar-bottom [monitor modules]
+  :geometry (geometry :x "0" :y "0" :width "100%" :anchor "bottom center")
+  :stacking "fg"
+  :exclusive true
+  :focusable false
+  :namespace "hd-bar"
+  (bar-taskbar :monitor monitor :modules modules))
+
+(defwidget bar-taskbar [monitor modules]
+  (centerbox :class "bar-task"
+    (box :halign "start" :space-evenly false :spacing 8
+      (box :visible {matches(modules, ",clock,") && weather.available == true} (task-weather :monitor monitor))
+      (box :visible {matches(modules, ",workspaces,") && wm.has_workspaces} (task-workspaces :monitor monitor)))
+    (box :halign "center" :space-evenly false :spacing 2
+      (box :visible {matches(modules, ",launcher,")} (task-start :monitor monitor))
+      (box :visible {matches(modules, ",quicklaunch,") || matches(modules, ",window,")} (task-apps :monitor monitor)))
+    (box :halign "end" :space-evenly false :spacing 8
+      (box :visible {matches(modules, ",media,") && media.active == true} (task-media :monitor monitor))
+      (box :visible {matches(modules, ",tray,")} :class "tray task-tray"
+        (systray :spacing 10 :icon-size 16 :prepend-new true))
+      (box :visible {matches(modules, ",system,")} (task-indicators :monitor monitor))
+      (box :visible {matches(modules, ",clock,")} (task-clock :monitor monitor))
+      (box :visible {matches(modules, ",system,")} (task-end :monitor monitor)))))
+
+;; ── Izquierda ───────────────────────────────────────────────────────────────
+(defwidget task-weather [monitor]
+  (eventbox :cursor "pointer"
+    (button :class "task-island task-weather" :onclick "desktopctl popup toggle weather ${monitor}"
+            :tooltip "${weather.city ?: ''}: ${weather.desc ?: ''}"
+      (box :space-evenly false :spacing 8
+        (label :class "task-weather-glyph c-${weather.color ?: 'lavender'}" :text {weather.glyph ?: "󰖐"})
+        (box :orientation "v" :space-evenly false :valign "center"
+          (label :class "task-strong" :halign "start" :text "${weather.temp ?: '--'}${weather.unit ?: '°C'}")
+          (label :class "task-dim" :halign "start" :limit-width 14 :text {weather.desc ?: ""}))))))
+
+;; Espacios como «Rectángulo» pero compactos: número y hasta tres iconos pequeños
+(defwidget task-workspaces [monitor]
+  (eventbox :onscroll "desktopctl wm scroll ${monitor} {}"
+    (box :class "task-island task-workspaces" :space-evenly false :spacing 3
+      (for ws in {wm.workspaces[monitor] ?: []}
+        (eventbox :cursor "pointer"
+          (button :class "tws ${ws.state}" :onclick "desktopctl wm focus ${ws.id}"
+                  :tooltip "Espacio ${ws.label}${ws.state == 'urgent' ? ' (requiere atención)' : ''}"
+            (box :space-evenly false :spacing 4
+              (label :class "tws-num" :text {ws.label})
+              (box :visible {arraylength(ws.apps ?: []) > 0} :space-evenly false :spacing 2
+                (for icon in {jq(ws.apps ?: [], '.[0:3]')}
+                  (image :path icon :image-width 14 :image-height 14))))))))))
+
+;; ── Centro ──────────────────────────────────────────────────────────────────
+(defwidget task-start [monitor]
+  (eventbox :cursor "pointer"
+    (button :class "task-app task-start ${popup.open == 'startmenu' && popup.monitor == monitor ? 'open' : ''}"
+            :tooltip "Inicio" :onclick "desktopctl popup toggle startmenu ${monitor}"
+            :onrightclick "desktopctl popup toggle settings ${monitor} appearance"
+      (box :orientation "v" :space-evenly false
+        (label :class "task-logo" :text "")
+        (box :class "task-dot" :halign "center")))))
+
+;; Fijadas: clic abre (o enfoca si ya está abierta), clic central abre otra ventana.
+;; Abiertas: clic enfoca y, si ya tienen el foco, pasa a su siguiente ventana.
+(defwidget task-apps [monitor]
+  (box :space-evenly false :spacing 2
+    (for t in {wm.tasks ?: []}
+      (eventbox :cursor "pointer"
+        (button :class "task-app ${t.focused ? 'focused' : t.count > 0 ? 'running' : ''}"
+                :tooltip "${t.tooltip}${t.count > 1 ? ' (' + t.count + ' ventanas)' : ''}"
+                :onclick {t.count > 0 ? "desktopctl wm task '${t.class}'" : "desktopctl system quick ${t.index}"}
+                :onmiddleclick {t.pinned ? "desktopctl system quick ${t.index}" : ""}
+          (box :orientation "v" :space-evenly false
+            (box :halign "center"
+              (image :visible {t.image != ""} :path {t.image != "" ? t.image : "${EWW_CONFIG_DIR}/../../assets/icons/blank.png"}
+                     :image-width 24 :image-height 24)
+              (label :visible {t.image == ""} :class "task-glyph" :text {t.glyph ?: ""}))
+            (box :class "task-dot" :halign "center")))))))
+
+;; ── Derecha ─────────────────────────────────────────────────────────────────
+(defwidget task-media [monitor]
+  (box :class "task-island task-media" :space-evenly false :spacing 6
+    (eventbox :cursor "pointer"
+      (button :onclick "desktopctl popup toggle media ${monitor}" :onrightclick "desktopctl media cycle"
+              :tooltip "${media.player_label ?: ''}: ${media.title ?: ''}${(media.artist ?: '') != '' ? ' · ' + media.artist : ''}"
+        (box :space-evenly false :spacing 6
+          (label :class "task-glyph c-pink" :text {media.player_icon ?: "󰎈"})
+          (label :class "task-value" :limit-width 22 :text {media.title ?: ""}))))
+    (icon-button :icon {media.playing == true ? "󰏤" : "󰐊"} :onclick "desktopctl media toggle" :class "flat" :tooltip "Reproducir/Pausar")
+    (icon-button :icon "󰒭" :onclick "desktopctl media next" :class "flat" :tooltip "Siguiente")))
+
+;; Indicadores con los colores de «Cápsulas»
+(defwidget task-indicators [monitor]
+  (box :class "task-island task-status" :space-evenly false :spacing 12
+    (eventbox :cursor "pointer" :visible {updates.available ?: true}
+      (button :onclick "desktopctl popup toggle updates ${monitor}" :onrightclick "desktopctl updates refresh"
+              :tooltip {updates.status == "checking" ? "Buscando actualizaciones…" : "${updates.count} actualizaciones pendientes"}
+        (box :space-evenly false :spacing 4
+          (label :class "task-glyph c-yellow ${updates.status == 'checking' ? 'busy' : ''}" :text "󰮯")
+          (label :class "task-value" :visible {(updates.count ?: 0) > 0} :text {updates.count ?: 0}))))
+    (eventbox :cursor "pointer" :visible {audio.has_source == true} :onscroll "desktopctl audio step source {}"
+      (button :onclick "desktopctl audio mute source" :onrightclick "desktopctl popup open audio ${monitor} in"
+              :tooltip "Micrófono: ${audio.source?.description ?: ''} (${audio.source?.muted == true ? 'silenciado' : audio.source?.volume + '%'})"
+        (label :class "task-glyph ${audio.source?.muted == true ? 'c-red' : 'c-green'}" :text {audio.source?.glyph ?: "󰍬"})))
+    (eventbox :cursor "pointer" :visible {network.available == true}
+      (button :onclick "desktopctl popup toggle network ${monitor}"
+              :tooltip {network.kind == "wifi" ? "Wi-Fi: ${network.ssid}" : network.kind == "ethernet" ? "Ethernet: ${network.ethernet?.connection}" : "Sin conexión"}
+        (label :class "task-glyph ${network.kind == 'disconnected' ? 'c-red' : 'c-blue'}" :text {network.glyph ?: "󰤭"})))
+    (eventbox :cursor "pointer" :visible {bluetooth.available == true}
+      (button :onclick "desktopctl popup toggle bluetooth ${monitor}" :onrightclick "desktopctl bluetooth toggle-power"
+              :tooltip {bluetooth.powered != true ? "Bluetooth desactivado" : (bluetooth.connected_count ?: 0) > 0 ? "Bluetooth: ${bluetooth.connected_names}" : "Bluetooth activado"}
+        (label :class "task-glyph ${bluetooth.powered == true ? 'c-blue' : 'c-overlay2'}" :text {bluetooth.glyph ?: "󰂯"})))
+    (eventbox :cursor "pointer" :visible {audio.available == true} :onscroll "desktopctl audio step sink {}"
+      (button :onclick "desktopctl popup toggle audio ${monitor}" :onrightclick "desktopctl audio mute sink"
+              :tooltip "${audio.sink?.description ?: ''}: ${audio.sink?.muted == true ? 'silenciado' : (audio.sink?.volume ?: 0) + '%'}"
+        (box :space-evenly false :spacing 4
+          (label :class "task-glyph ${audio.sink?.muted == true ? 'c-red' : 'c-sky'}" :text {audio.sink?.glyph ?: "󰕾"})
+          (label :class "task-value" :text "${audio.sink?.volume ?: 0}%"))))
+    (box :visible {system.battery?.present == true} :space-evenly false :spacing 4
+         :tooltip "${system.battery?.status ?: ''}"
+      (label :class "task-glyph ${(system.battery?.percent ?: 100) < 20 && system.battery?.charging != true ? 'c-red' : 'c-green'}"
+             :text {system.battery?.glyph ?: ""})
+      (label :class "task-value" :text "${system.battery?.percent ?: ''}%"))))
+
+;; Hora y fecha apiladas, como en Windows 11
+(defwidget task-clock [monitor]
+  (eventbox :cursor "pointer"
+    (button :class "task-island task-clock" :onclick "desktopctl popup toggle calendar ${monitor}" :tooltip {clock.date}
+      (box :orientation "v" :space-evenly false :valign "center"
+        (label :class "task-strong" :halign "end" :text {clock.time})
+        (label :class "task-dim" :halign "end" :text {clock.short ?: ""})))))
+
+;; Notificaciones (con contador) y energía
+(defwidget task-end [monitor]
+  (box :space-evenly false :spacing 2
+    (eventbox :cursor "pointer"
+      (button :class "task-icon" :onclick "desktopctl popup toggle notifications ${monitor}" :onrightclick "desktopctl notifications dnd toggle"
+              :tooltip {notifications.dnd == true ? "No molestar activado" : "${notifications.count ?: 0} notificaciones"}
+        (box :space-evenly false :spacing 4
+          (label :class "task-glyph ${notifications.dnd == true ? 'c-overlay2' : 'c-peach'}"
+                 :text {notifications.dnd == true ? "󰂛" : (notifications.count ?: 0) > 0 ? "󰂞" : "󰂚"})
+          (label :class "pill" :visible {(notifications.count ?: 0) > 0} :valign "center" :text {notifications.count}))))
+    (eventbox :cursor "pointer"
+      (button :class "task-icon task-power" :onclick "desktopctl popup toggle power ${monitor}" :tooltip "Energía"
+        (label :class "task-glyph" :text "󰐥")))))

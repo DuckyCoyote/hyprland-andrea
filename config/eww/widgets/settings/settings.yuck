@@ -89,7 +89,7 @@
         (eventbox :cursor "pointer"
           (button :class "accent-dot ${a.selected ? 'selected' : ''}" :style "background-color: ${a.hex};"
                   :onclick "desktopctl appearance set accent ${a.name}" :tooltip {a.name}))))
-    (section-title :text "Barra superior")
+    (section-title :text "Barra")
     (box :class "bar-styles" :space-evenly true :spacing 8
       (for b in {appearance.bar_styles ?: []}
         (eventbox :cursor "pointer"
@@ -115,7 +115,16 @@
                   (box :class "bar-mini-dot island" :width 14)
                   (box :hexpand true)
                   (box :class "bar-mini-dot island" :width 18)
-                  (box :class "bar-mini-dot red")))
+                  (box :class "bar-mini-dot red"))
+                ;; inferior: apps centradas y la franja abajo
+                (box :class "bar-mini" :visible {b.id == "taskbar"} :hexpand true :space-evenly false :spacing 4 :valign "end"
+                  (box :class "bar-mini-dot island" :width 14)
+                  (box :hexpand true)
+                  (box :class "bar-mini-dot accent")
+                  (box :class "bar-mini-dot")
+                  (box :class "bar-mini-dot")
+                  (box :hexpand true)
+                  (box :class "bar-mini-dot island" :width 18)))
               (label :class "theme-name" :text {b.name}))))))
     (section-title :text "Fondo de pantalla"
       (box :space-evenly false
@@ -196,19 +205,52 @@
     (toggle :active value :onclick "desktopctl appearance set ${key} toggle")))
 
 ;; ── Pantallas ───────────────────────────────────────────────────────────────
+;; Modo de proyección (como Win+P) y encendido de cada pantalla: lib/desktop/sources/displays.py
 (defwidget settings-displays []
   (box :orientation "v" :space-evenly false :spacing 10
-    (for m in {wm.monitors ?: []}
-      (box :class "card ${m.focused ? 'selected' : ''}" :space-evenly false :spacing 14
-        (label :class "glyph huge c-${m.index == 0 ? 'accent' : 'overlay2'}" :text "󰍹")
-        (box :orientation "v" :space-evenly false :hexpand true
-          (label :class "big-name" :halign "start" :text "${m.name}${m.index == 0 ? ' · principal' : ''}")
-          (label :class "dim" :halign "start" :text {m.model != "" ? m.model : "—"})
-          (label :class "dim" :halign "start"
-                 :text {m.width > 0 ? "${m.width}×${m.height} @ ${m.refresh} Hz · escala ${m.scale} · posición ${m.x},${m.y}" : "Datos no disponibles con este compositor"}))
-        (label :class "dim" :visible {m.focused} :text "enfocado")))
-    (label :class "status-line" :wrap true :xalign 0
-           :text "Resolución, posición y monitor principal se definen en settings.json → monitors. Después ejecuta «Aplicar» o desktopctl apply.")
+    (box :visible {displays.managed == true} :orientation "v" :space-evenly false :spacing 10
+      (section-title :text "Modo de proyección"
+        (label :class "dim small" :text "Super+Shift+P"))
+      (box :class "proj-modes" :space-evenly true :spacing 8
+        (for p in {displays.modes ?: []}
+          (eventbox :cursor "pointer"
+            (button :class "proj-card ${p.id == displays.mode ? 'selected' : ''} ${(displays.count ?: 1) < 2 && (p.id == 'mirror' || p.id == 'external') ? 'unavailable' : ''}"
+                    :onclick "desktopctl displays mode ${p.id}"
+              (box :orientation "v" :space-evenly false :spacing 4
+                (label :class "proj-glyph" :text {p.glyph})
+                (label :class "proj-label" :text {p.label}))))))
+      ;; varias etiquetas cortas: las de Eww no parten el texto de forma fiable
+      (box :orientation "v" :space-evenly false
+        (label :class "dim small" :halign "start" :text "Para presentar con un proyector u otra pantalla:")
+        (label :class "dim small" :halign "start" :text "· Duplicar: lo mismo en todas las pantallas")
+        (label :class "dim small" :halign "start" :text "· Extender: tu pantalla queda libre para notas")
+        (label :class "dim small" :halign "start" :text "· Solo secundarias: apaga la principal"))
+      (section-title :text "Pantallas conectadas")
+      (for m in {displays.outputs ?: []}
+        (box :class "card display-card ${m.state} ${m.focused && m.state == 'on' ? 'selected' : ''}" :space-evenly false :spacing 14
+          (label :class "glyph huge c-${m.state == 'off' ? 'overlay0' : m.primary ? 'accent' : 'overlay2'}" :text {m.glyph})
+          (box :orientation "v" :space-evenly false :hexpand true
+            (label :class "big-name" :halign "start" :text "${m.name}${m.primary ? ' · principal' : ''}")
+            (label :class "dim" :halign "start" :text {m.model != "" ? m.model : "—"})
+            (label :class "dim" :halign "start"
+                   :text {m.state == "on" ? "${m.width}×${m.height} @ ${m.refresh} Hz · escala ${m.scale} · posición ${m.x},${m.y}" : m.status}))
+          (toggle :active {m.state != "off"}
+                  :onclick {m.can_toggle ? "desktopctl displays toggle ${m.name}" : ""}
+                  :tooltip {m.can_toggle ? (m.state == "off" ? "Encender" : "Apagar") : "Debe quedar al menos una pantalla encendida"}))))
+    ;; compositor sin gestión de salidas: solo información
+    (box :visible {displays.managed != true} :orientation "v" :space-evenly false :spacing 10
+      (for m in {wm.monitors ?: []}
+        (box :class "card ${m.focused ? 'selected' : ''}" :space-evenly false :spacing 14
+          (label :class "glyph huge c-${m.index == 0 ? 'accent' : 'overlay2'}" :text "󰍹")
+          (box :orientation "v" :space-evenly false :hexpand true
+            (label :class "big-name" :halign "start" :text "${m.name}${m.index == 0 ? ' · principal' : ''}")
+            (label :class "dim" :halign "start" :text {m.model != "" ? m.model : "—"})
+            (label :class "dim" :halign "start"
+                   :text {m.width > 0 ? "${m.width}×${m.height} @ ${m.refresh} Hz · escala ${m.scale} · posición ${m.x},${m.y}" : "Datos no disponibles con este compositor"}))
+          (label :class "dim" :visible {m.focused} :text "enfocado"))))
+    (box :orientation "v" :space-evenly false
+      (label :class "dim small" :halign "start" :text "Resolución, posición y monitor principal: settings.json → monitors.")
+      (label :class "dim small" :halign "start" :text "Después pulsa «Aplicar» o ejecuta desktopctl apply."))
     (box :halign "end" :space-evenly false :spacing 8
       (text-button :label "Editar settings.json" :icon "󰷈" :onclick "desktopctl system edit-settings")
       (text-button :label "Aplicar" :icon "󰄬" :kind "primary" :onclick "desktopctl appearance apply ; desktopctl wm bars"))))

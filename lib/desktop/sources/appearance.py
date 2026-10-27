@@ -12,7 +12,7 @@ from ..util import Debouncer, have, run
 
 INT_KEYS = {"font_size": (8, 24), "font_weight": (100, 900), "radius": (0, 24), "spacing": (2, 20), "border_width": (0, 4)}
 BOOL_KEYS = {"transparency", "shadows", "animations"}
-BAR_STYLES = {"capsules": "Cápsulas", "rectangle": "Rectángulo", "arcade": "Arcade"}
+BAR_STYLES = {"capsules": "Cápsulas", "rectangle": "Rectángulo", "arcade": "Arcade", "taskbar": "Inferior"}
 ACCENTS = ["mauve", "lavender", "blue", "sapphire", "sky", "teal", "green", "yellow", "peach", "maroon", "red", "pink", "flamingo", "rosewater"]
 
 
@@ -124,6 +124,16 @@ class AppearanceSource(Source):
                 return "sin cambios"
             config.set_appearance(key, value)
             self._publish()
+            # «Inferior» es otra ventana (anclada abajo) y sus popups se abren abajo: al entrar o
+            # salir de él se cambian las barras y el popup abierto (Configuración) se reabre en su sitio
+            if "taskbar" in (value, _bar_style(current)):
+                popup = self.hub.sources["popup"]
+                was = dict(popup.state)
+                await popup.cmd_close()
+                await self.hub.sources["wm"].sync_bars()
+                if was["open"]:
+                    await asyncio.sleep(0.4)
+                    await popup.cmd_open(was["open"], was["monitor"], was["tab"])
             return f"bar_style = {value}"
         elif key == "icon_theme":
             val = value

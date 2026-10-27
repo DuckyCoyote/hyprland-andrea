@@ -75,6 +75,7 @@ local binds = {
     { M .. " + ALT + U",       "Actualizaciones",                        ctl("popup toggle updates focused") },
     { M .. " + ALT + O",       "Bandeja de notificaciones",              ctl("popup toggle notifications focused") },
     { M .. " + ALT + D",       "No molestar (activar/desactivar)",       ctl("notifications dnd toggle") },
+    { M .. " + SHIFT + P",     "Modo de proyección siguiente (pantallas)", ctl("displays cycle"), { submap_universal = true } },
     { M .. " + CTRL + R",      "Reiniciar Hyprland, barras y widgets",   exec("sh -c 'hyprctl reload; " .. ctx.ctl("apply") .. "; " .. ctx.ctl("wm reset") .. "'") },
     { M .. " + ALT + L",       "Bloquear pantalla",                      exec("loginctl lock-session") },
 

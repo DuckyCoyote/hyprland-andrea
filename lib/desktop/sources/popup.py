@@ -12,7 +12,7 @@ import time
 from .. import config, eww, paths
 from ..daemon import Source
 
-POPUPS = {"launcher", "settings", "power", "network", "bluetooth", "audio", "updates", "media", "weather", "calendar",
+POPUPS = {"launcher", "startmenu", "settings", "power", "network", "bluetooth", "audio", "updates", "media", "weather", "calendar",
           "notifications", "keymap", "switcher"}
 # Modo de teclado del compositor mientras el popup está abierto (por defecto: Escape cierra)
 KEY_MODES = {"switcher": "switcher", "power": "power"}
@@ -20,6 +20,10 @@ KEY_MODES = {"switcher": "switcher", "power": "power"}
 POWER_ACTIONS = ["lock", "suspend", "hibernate", "logout", "reboot", "poweroff"]
 POWER_CONFIRM = {"logout", "reboot", "poweroff"}
 CLOSER = "popup-closer"
+# Con la barra inferior (bar_style «taskbar») los popups se abren abajo, junto a la barra, en el
+# lado de su botón; los centrados no cambian. El lanzador pasa a ser el menú de inicio.
+BOTTOM_LEFT = {"weather"}
+CENTERED = {"keymap", "switcher", "startmenu"}
 # Tras abrir o cerrar con toggle, se ignoran más toggles durante este tiempo (doble clic o clics
 # impacientes): abrir y cerrar a la vez una ventana pesada como Configuración bloquea Eww.
 TOGGLE_COOLDOWN = 0.5
@@ -42,6 +46,18 @@ class PopupSource(Source):
     def wm(self):
         return self.hub.sources["wm"]
 
+    @staticmethod
+    def _taskbar() -> bool:
+        return config.load().get("appearance", {}).get("bar_style") == "taskbar"
+
+    def _alias(self, name: str) -> str:
+        return "startmenu" if name == "launcher" and self._taskbar() else name
+
+    def _placement(self, name: str) -> dict:
+        if name in CENTERED or not self._taskbar():
+            return {}
+        return {"anchor": "bottom left" if name in BOTTOM_LEFT else "bottom right", "pos": "10x0"}
+
     async def _resolve_monitor(self, monitor: str) -> str:
         if monitor and monitor != "focused":
             return monitor
@@ -52,6 +68,7 @@ class PopupSource(Source):
             return await self._open(name, monitor, tab)
 
     async def _open(self, name: str, monitor: str = "", tab: str = "") -> str:
+        name = self._alias(name)
         if name not in POPUPS:
             return f"popup desconocido: {name}"
         monitor = await self._resolve_monitor(monitor)
@@ -60,6 +77,8 @@ class PopupSource(Source):
             favs = config.read_state(paths.UI_STATE, {}).get("favorites", [])
             await asyncio.to_thread(eww.update, launcher_query="",
                                     launcher_cat="favorites" if favs else "all")
+        if name == "startmenu":
+            await asyncio.to_thread(eww.update, launcher_query="", start_view="pinned")
         if name == "keymap":  # la lista la reescribe Hyprland en cada recarga
             await self.hub.sources["system"].refresh(full=False)
         # Si Eww ya tiene la ventana abierta (en otro monitor, o de un daemon anterior), `eww open`
@@ -71,7 +90,7 @@ class PopupSource(Source):
         self.publish(dict(self.state))
         if config.load().get("popups", {}).get("close_on_click_outside", True):
             await asyncio.to_thread(eww.open_window, "popup_closer", CLOSER, screen)
-        await asyncio.to_thread(eww.open_window, name, name, screen)
+        await asyncio.to_thread(eww.open_window, name, name, screen, None, **self._placement(name))
         await self.wm.wm.popup_mode(True, KEY_MODES.get(name, "popup"))
         return f"{name} abierto en {monitor or 'monitor por defecto'}"
 
@@ -80,6 +99,7 @@ class PopupSource(Source):
             return "ignorado (doble clic)"
         async with self._busy:
             try:
+                name = self._alias(name)
                 target = await self._resolve_monitor(monitor)
                 if self.state["open"] == name and self.state["monitor"] == target and (not tab or tab == self.state["tab"]):
                     return await self._close()
@@ -124,7 +144,8 @@ class PopupSource(Source):
             return
         if config.load().get("popups", {}).get("close_on_click_outside", True) and CLOSER not in active:
             await asyncio.to_thread(eww.open_window, "popup_closer", CLOSER, screen)
-        if name not in active and not await asyncio.to_thread(eww.open_window, name, name, screen):
+        if name not in active and not await asyncio.to_thread(eww.open_window, name, name, screen, None,
+                                                               **self._placement(name)):
             await self.cmd_close()
 
     async def cmd_tab(self, tab: str) -> None:

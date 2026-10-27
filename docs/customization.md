@@ -45,6 +45,24 @@ solo a la derecha. Para fijarlo, añádelo a `monitors`. `hyprctl monitors` list
 Cada monitor tiene su bloque de espacios: el principal 1–9, el segundo 11–19, etc. `Super+N`
 siempre va al espacio N **del monitor enfocado**, como las tags por pantalla de AwesomeWM.
 
+### Proyección y apagar pantallas
+
+Configuración → Pantallas (o `Super+Shift+P`, que pasa al modo siguiente) elige el modo de
+proyección, como Win+P en Windows:
+
+| Modo | Qué hace | Orden |
+|---|---|---|
+| Extender | cada pantalla con su posición de `monitors` (las nuevas, a la derecha) | `desktopctl displays mode extend` |
+| Duplicar | las demás pantallas muestran la principal (proyector para presentar) | `desktopctl displays mode mirror` |
+| Solo principal | apaga el resto | `desktopctl displays mode primary` |
+| Solo secundarias | apaga la principal (solo proyector o monitor externo) | `desktopctl displays mode external` |
+
+Cada pantalla tiene además un interruptor para apagarla (`desktopctl displays toggle <salida>`).
+El estado se guarda en `~/.local/state/hyprland-desktop/displays.json` y el daemon lo aplica en
+caliente cada vez que se conecta una pantalla o se recarga Hyprland; la configuración estática las
+enciende todas, así que nunca se arranca a oscuras. Nunca queda todo apagado: si se desconecta
+la única pantalla encendida se vuelve a «Extender». Al conectar una pantalla nueva llega un aviso.
+
 ## Apariencia en vivo
 
 El selector visual (`Super+Shift+T` o clic derecho en el botón del lanzador) cambia tema,

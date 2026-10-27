@@ -1,0 +1,62 @@
+// Menú de inicio (barra inferior): disposición de Windows 11 con los colores del tema
+.start-popup { padding: $gap * 2 $gap * 2 $gap * 1.5 $gap * 2; }
+
+.start-search {
+  border-radius: $radius-pill;
+  padding: 9px 16px;
+}
+
+.start-link {
+  padding: 3px 10px;
+  border-radius: $radius-pill;
+  background-color: $bg-alt;
+  border: $border-width solid $border;
+  font-size: $font-sm;
+  .glyph { font-size: $font-size; }
+  &:hover { background-color: $hover; border-color: $accent; }
+}
+
+.start-pinned { min-height: 250px; }
+.start-tile {
+  padding: 10px 4px 8px 4px;
+  min-width: 88px;
+  border-radius: $radius;
+  border: $border-width solid transparent;
+  @include transition(background-color, border-color);
+  &:hover, &:focus { background-color: $hover; border-color: $border; }
+  .start-tile-name { font-size: $font-sm; }
+}
+
+.start-row {
+  padding: 6px 10px;
+  border-radius: $radius;
+  border: $border-width solid transparent;
+  @include transition(background-color, border-color);
+  &:hover, &:focus { background-color: $hover; border-color: $border; }
+  .start-fav { color: $icon-yellow; font-size: $font-size; }
+}
+.start-letter {
+  margin: 8px 0 2px 10px;
+  font-weight: bold;
+  color: $accent;
+}
+
+// Pie separado como en Windows 11: franja hundida a todo el ancho del panel
+.start-footer {
+  margin: 0 (-$gap * 2) (-$gap * 1.5) (-$gap * 2);
+  padding: 10px $gap * 2;
+  background-color: $bg-sunken;
+  border-top: $border-width solid $border;
+  border-radius: 0 0 $radius-lg $radius-lg;
+}
+.start-user {
+  padding: 4px 10px 4px 4px;
+  border-radius: $radius-pill;
+  &:hover { background-color: $hover; }
+}
+.start-avatar { min-width: 34px; min-height: 34px; }
+.start-name { font-weight: bold; }
+.start-power .glyph { color: $icon-red; }
+
+// Como en el lanzador: se oculta el indicador de GTK de los checkbox
+.start-tile check, .start-row check { min-width: 1px; min-height: 1px; margin: 0 -1px 0 0; padding: 0; -gtk-icon-source: none; background: none; border: none; }

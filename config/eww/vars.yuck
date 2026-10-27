@@ -5,6 +5,7 @@
 ;; ─────────────────────────────────────────────────────────────────────────────
 
 (deflisten wm         :initial `{"workspaces":{},"windows":{},"monitors":[],"has_workspaces":false}` "desktop-sub wm")
+(deflisten displays   :initial `{"managed":false,"modes":[],"outputs":[]}`              "desktop-sub displays")
 (deflisten popup      :initial `{"open":"","monitor":"","tab":"","confirm":""}`        "desktop-sub popup")
 (deflisten appearance :initial `{"themes":[],"accents":[],"fonts":[]}`                   "desktop-sub appearance")
 (deflisten audio      :initial `{"available":false}`                                     "desktop-sub audio")
@@ -29,6 +30,7 @@
 ;; Estado local de la interfaz
 (defvar launcher_query "")
 (defvar launcher_cat "all")
+(defvar start_view "pinned")   ; menú de inicio: pinned | all
 (defvar audio_tab "out")
 (defvar weather_tab "hours")
 (defvar font_picker false)

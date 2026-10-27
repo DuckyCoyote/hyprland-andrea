@@ -31,6 +31,15 @@ class WindowManager:
                         "focused": i == 0, "active_workspace": None})
         return out
 
+    async def outputs(self) -> list[dict] | None:
+        """Todas las salidas conectadas, también las apagadas o duplicadas:
+        [{name, model, enabled, mirror_of, width, height, refresh, scale, x, y, focused}].
+        None si el compositor no permite gestionarlas (la sección Pantallas solo informa)."""
+        return None
+
+    async def configure_outputs(self, specs: list[dict]) -> None:
+        """Aplica en caliente [{name, state: on|off|mirror, mode, position, scale, mirror}]."""
+
     async def workspaces(self) -> list[dict]:
         """[{id, name, monitor, windows, urgent}]"""
         return []

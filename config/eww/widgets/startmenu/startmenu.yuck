@@ -1,0 +1,113 @@
+;; ─────────────────────────────────────────────────────────────────────────────
+;; Menú de inicio de la barra inferior: la disposición del de Windows 11 con el aire de un
+;; escritorio Linux (logo de la distribución, host y kernel, colores del tema).
+;;   - Buscador arriba: escribir filtra todas las apps; Enter abre el primer resultado.
+;;   - «Fijadas»: las favoritas del lanzador (clic derecho en una app la fija o la quita).
+;;   - «Recientes»: las últimas apps abiertas desde el lanzador o este menú.
+;;   - «Todas»: lista alfabética agrupada por letra.
+;;   - Pie: usuario (abre Configuración), bloquear, configuración y energía.
+;; Como en el lanzador, las apps son `checkbox` para que Enter/Espacio las abran con el teclado
+;; (ver launcher.yuck) y el campo de búsqueda no enlaza :value (scripts/launcher-query.sh).
+;; ─────────────────────────────────────────────────────────────────────────────
+
+(defwindow startmenu
+  :geometry (geometry :x "0px" :y "0px" :width "620px" :height "640px" :anchor "bottom center")
+  :stacking "overlay"
+  :focusable true
+  :namespace "hd-popup"
+  (popup-frame :name "start-popup"
+    (start-body
+      :results {jq(apps.apps ?: [],
+        '[.[] | select(.search | contains("${replace(launcher_query, "[^[:alnum:] ._+-]", "")}" | ascii_downcase))] | .[0:30]')}
+      :pinned {jq(apps.apps ?: [], '[.[] | select(.fav)] | .[0:18] | [range(0; length; 6) as $i | .[$i:$i+6]]')}
+      :recent {jq(apps.apps ?: [], '[.[] | select(.last > 0)] | sort_by(-.last) | .[0:6] | [range(0; length; 2) as $i | .[$i:$i+2]]')})))
+
+(defwidget start-body [results pinned recent]
+  (box :class "start" :orientation "v" :space-evenly false :spacing 14 :vexpand true
+    (box :class "search start-search" :space-evenly false :spacing 10
+      (label :class "glyph c-overlay2" :text "󰍉")
+      (input :class "search-input" :hexpand true
+             :onchange "${EWW_CONFIG_DIR}/scripts/launcher-query.sh '{}' ${EWW_CMD}"
+             :onaccept "desktopctl apps launch '${arraylength(results) > 0 ? results[0].id : ''}' ; ${EWW_CMD} update launcher_query=''"))
+
+    ;; Resultados de búsqueda
+    (box :visible {launcher_query != ""} :orientation "v" :space-evenly false :spacing 8 :vexpand true
+      (section-title :text "Mejores coincidencias")
+      (scroll :vscroll true :hscroll false :vexpand true
+        (box :orientation "v" :space-evenly false :spacing 2
+          (label :class "status-line" :visible {arraylength(results) == 0} :text "Sin resultados")
+          (for app in results (start-row :app app)))))
+
+    ;; Inicio: fijadas y recientes
+    (box :visible {launcher_query == "" && start_view == "pinned"} :orientation "v" :space-evenly false :spacing 10 :vexpand true
+      (section-title :text "Fijadas"
+        (start-link :label "Todas las apps" :glyph "󰅂" :onclick "${EWW_CMD} update start_view=all"))
+      (box :class "start-pinned" :orientation "v" :space-evenly false :spacing 4
+        (box :visible {arraylength(pinned) == 0} :orientation "v" :space-evenly false :valign "center" :vexpand true
+          (label :class "dim" :text "Aún no hay apps fijadas.")
+          (label :class "dim small" :text "Clic derecho sobre una app (en «Todas las apps») para fijarla."))
+        (for row in pinned
+          (box :space-evenly false :spacing 4
+            (for app in row (start-tile :app app)))))
+      (section-title :text "Recientes")
+      (box :class "start-recent" :orientation "v" :space-evenly false :spacing 4 :vexpand true
+        (label :class "dim small" :halign "start" :visible {arraylength(recent) == 0}
+               :text "Las apps que abras desde aquí aparecerán en esta lista.")
+        (for row in recent
+          (box :space-evenly true :spacing 8
+            (for app in row (start-row :app app))))))
+
+    ;; Todas las apps, por letra
+    (box :visible {launcher_query == "" && start_view == "all"} :orientation "v" :space-evenly false :spacing 8 :vexpand true
+      (section-title :text "Todas las apps"
+        (start-link :label "Atrás" :glyph "󰅁" :onclick "${EWW_CMD} update start_view=pinned"))
+      (scroll :vscroll true :hscroll false :vexpand true
+        (box :orientation "v" :space-evenly false :spacing 2
+          (for g in {start_view == "all" ? jq(apps.apps ?: [], 'sort_by(.name | ascii_downcase) | group_by(.name[0:1] | ascii_upcase) | map({letter: (.[0].name[0:1] | ascii_upcase), apps: .})') : []}
+            (box :orientation "v" :space-evenly false :spacing 2
+              (label :class "start-letter" :halign "start" :text {g.letter})
+              (for app in {g.apps} (start-row :app app)))))))
+
+    ;; Pie: usuario y sesión
+    (box :class "start-footer" :space-evenly false :spacing 6
+      (eventbox :cursor "pointer"
+        (button :class "start-user" :onclick "desktopctl popup open settings ${popup.monitor} system"
+                :tooltip "Configuración del sistema"
+          (box :space-evenly false :spacing 10
+            (box :class "avatar start-avatar" :style "background-image: url('${system.avatar ?: ''}');")
+            (box :orientation "v" :space-evenly false :valign "center"
+              (label :class "start-name" :halign "start" :text {system.user ?: ""})
+              (label :class "dim small" :halign "start" :limit-width 40
+                     :text "  ${system.host ?: ''} · ${system.kernel ?: ''}")))))
+      (box :hexpand true)
+      (icon-button :icon "󰌾" :class "flat" :tooltip "Bloquear" :onclick "desktopctl popup close ; desktopctl system power lock")
+      (icon-button :icon "󰒓" :class "flat" :tooltip "Configuración" :onclick "desktopctl popup open settings ${popup.monitor} system")
+      (icon-button :icon "󰐥" :class "flat start-power" :tooltip "Energía" :onclick "desktopctl popup open power ${popup.monitor}"))))
+
+(defwidget start-link [label glyph onclick]
+  (eventbox :cursor "pointer"
+    (button :class "start-link" :onclick onclick
+      (box :space-evenly false :spacing 4
+        (label :text label)
+        (label :class "glyph" :text glyph)))))
+
+;; App fijada: icono grande y nombre (clic derecho la desfija)
+(defwidget start-tile [app]
+  (eventbox :cursor "pointer" :onrightclick "desktopctl apps favorite '${app.id}'"
+    (checkbox :class "start-tile" :tooltip "${app.name} (clic derecho: desfijar)"
+              :onchecked "desktopctl apps launch '${app.id}' ; ${EWW_CMD} update launcher_query=''"
+              :onunchecked "desktopctl apps launch '${app.id}' ; ${EWW_CMD} update launcher_query=''"
+      (box :orientation "v" :space-evenly false :spacing 6 :hexpand true
+        (image :path {(app.icon ?: "") != "" ? app.icon : "${EWW_CONFIG_DIR}/../../assets/icons/blank.png"} :image-width 34 :image-height 34)
+        (label :class "start-tile-name" :limit-width 11 :text {app.name})))))
+
+;; Fila de app: icono y nombre (clic derecho la fija o la desfija)
+(defwidget start-row [app]
+  (eventbox :cursor "pointer" :onrightclick "desktopctl apps favorite '${app.id}'"
+    (checkbox :class "start-row" :tooltip {app.fav ? "Fijada (clic derecho: desfijar)" : "Clic derecho: fijar en Inicio"}
+              :onchecked "desktopctl apps launch '${app.id}' ; ${EWW_CMD} update launcher_query=''"
+              :onunchecked "desktopctl apps launch '${app.id}' ; ${EWW_CMD} update launcher_query=''"
+      (box :space-evenly false :spacing 12 :hexpand true
+        (image :path {(app.icon ?: "") != "" ? app.icon : "${EWW_CONFIG_DIR}/../../assets/icons/blank.png"} :image-width 26 :image-height 26)
+        (label :class "start-row-name" :halign "start" :hexpand true :limit-width 30 :text {app.name})
+        (label :class "start-fav" :visible {app.fav} :text "󰓎")))))

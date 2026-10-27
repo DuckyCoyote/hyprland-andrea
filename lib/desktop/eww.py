@@ -75,10 +75,16 @@ def update(**values) -> None:
     call("update", *args)
 
 
-def open_window(window: str, window_id: str, screen: str | int | None, args: dict | None = None) -> bool:
+def open_window(window: str, window_id: str, screen: str | int | None, args: dict | None = None,
+                anchor: str | None = None, pos: str | None = None) -> bool:
+    """anchor/pos sustituyen a los de la geometría de la ventana (p. ej. "bottom right", "10x0")."""
     cmd = ["open", window, "--id", window_id]
     if screen is not None:
         cmd += ["--screen", str(screen)]
+    if anchor:
+        cmd += ["--anchor", anchor]
+    if pos:
+        cmd += ["--pos", pos]
     for k, v in (args or {}).items():
         cmd += ["--arg", f"{k}={v}"]
     code, out = call(*cmd)

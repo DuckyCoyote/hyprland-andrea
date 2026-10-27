@@ -23,6 +23,7 @@ Origen: `keys/globalkeys.lua` y `keys/clientkeys.lua` de
 | Super+Alt+N / A / M / U | Paneles de red / audio / multimedia / actualizaciones | *nuevo* |
 | Super+Alt+O | Bandeja de notificaciones | *nuevo* |
 | Super+Alt+D | No molestar | *nuevo* |
+| Super+Shift+P | Modo de proyección siguiente: extender / duplicar / solo principal / solo secundarias (funciona con un panel abierto) | *nuevo* |
 | Escape | Cerrar el panel abierto | — |
 
 ## Espacios de trabajo (por monitor)
