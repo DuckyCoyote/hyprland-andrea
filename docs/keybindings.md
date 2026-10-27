@@ -37,6 +37,27 @@ Origen: `keys/globalkeys.lua` y `keys/clientkeys.lua` de
 | Super+Escape | Espacio anterior (historial) |
 | Super+rueda | Recorrer espacios |
 
+## Grupos de escritorios
+
+Un nivel por encima de los espacios: cada grupo tiene sus propios espacios en **todos** los
+monitores (grupo 1 → 1…9 / 11…19, grupo 2 → 101…109 / 111…119…). Cambiar de grupo cambia
+todas las pantallas a la vez, cada una a su último espacio de ese grupo; las ventanas no se
+mueven. Los nombres se definen en `settings.json` → `workspaces.groups` (por defecto Trabajo,
+Personal, Ocio, Extra; máx. 9). Si Alt+Tab lleva a una ventana de otro grupo, los demás
+monitores pasan a ese grupo.
+
+| Atajo | Acción |
+|---|---|
+| Super+G | Selector de grupos (también clic en el grupo de la barra; rueda sobre él = cambiar) |
+| Super+Ctrl+Left / Right | Grupo anterior / siguiente |
+| Super+Alt+1…N | Ir al grupo N |
+| Super+Alt+Shift+1…N | Mover la ventana al grupo N (y seguirla) |
+| Super+Alt+Ctrl+1…N | Enviar la ventana al grupo N sin seguirla |
+
+En el selector: Tab/flechas marcan, Enter o 1…N van al grupo, Shift+1…N (o el botón «Enviar
+ventana aquí») envían la ventana enfocada sin cerrar el selector, Esc cierra.
+CLI: `desktopctl wm group N|next|prev`, `desktopctl wm group-move N [follow]`.
+
 ## Ventanas
 
 | Atajo | Acción |

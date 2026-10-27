@@ -179,6 +179,18 @@ class Hyprland(WindowManager):
     async def focus_workspace(self, workspace_id: int) -> None:
         await self.dispatch(f"hl.dsp.focus({{ workspace = {int(workspace_id)} }})", f"workspace {int(workspace_id)}")
 
+    async def show_workspaces(self, targets: dict[str, int], focus: str) -> None:
+        # Una sola orden Lua: cada monitor cambia de espacio y el enfocado va el último. Cambiar el
+        # espacio de otro monitor mueve el cursor allí; al terminar se devuelve a donde estaba.
+        steps = [f"hl.dispatch(hl.dsp.focus({{ workspace = {int(targets[m])} }}))"
+                 for m in sorted(targets, key=lambda m: m == focus)]
+        await self._eval("local c = hl.get_cursor_pos() " + " ".join(steps)
+                         + " if c then hl.dispatch(hl.dsp.cursor.move({ x = math.floor(c.x), y = math.floor(c.y) })) end")
+
+    async def move_active_window(self, workspace_id: int) -> None:
+        await self.dispatch(f"hl.dsp.window.move({{ workspace = {int(workspace_id)}, follow = false }})",
+                            f"movetoworkspacesilent {int(workspace_id)}")
+
     async def popup_mode(self, enabled: bool, mode: str = "popup") -> None:
         submap = f"hd-{mode}" if enabled else "reset"
         await self.dispatch(f'hl.dsp.submap("{submap}")', f"submap {submap}")

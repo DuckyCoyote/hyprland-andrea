@@ -86,6 +86,11 @@ local binds = {
     { M .. " + mouse_down",    "Espacio siguiente (rueda)",              cycle_workspace(1) },
     { M .. " + mouse_up",      "Espacio anterior (rueda)",               cycle_workspace(-1) },
 
+    "Grupos de escritorios", -- cada grupo tiene sus propios espacios en todos los monitores
+    { M .. " + G",             "Selector de grupos de escritorios",      ctl("popup toggle groups focused") },
+    { M .. " + CTRL + Right",  "Grupo de escritorios siguiente",         ctl("wm group next") },
+    { M .. " + CTRL + Left",   "Grupo de escritorios anterior",          ctl("wm group prev") },
+
     "Foco y orden de ventanas",
     { M .. " + J",             "Enfocar ventana siguiente",              dsp.window.cycle_next({ next = true }) },
     { M .. " + K",             "Enfocar ventana anterior",               dsp.window.cycle_next({ next = false }) },
@@ -157,6 +162,16 @@ for slot = 1, 9 do
         function() hl.dispatch(dsp.window.move({ workspace = ctx.slot_id(slot), follow = false })) end })
 end
 
+-- Grupos 1..N: ir, mover la ventana (siguiéndola) o enviarla sin seguirla
+for group = 1, math.min(ctx.groups, 9) do
+    local key = tostring(group)
+    table.insert(binds, { M .. " + ALT + " .. key, "Ir al grupo " .. key, ctl("wm group " .. key) })
+    table.insert(binds, { M .. " + ALT + SHIFT + " .. key, "Mover ventana al grupo " .. key,
+        ctl("wm group-move " .. key .. " follow") })
+    table.insert(binds, { M .. " + ALT + CTRL + " .. key, "Enviar ventana al grupo " .. key .. " (sin seguirla)",
+        ctl("wm group-move " .. key) })
+end
+
 -- Registro de binds + chuleta para el panel de atajos
 local function json_string(s)
     return '"' .. tostring(s):gsub('[%c"\\]', function(c) return string.format("\\u%04x", c:byte()) end) .. '"'
@@ -181,6 +196,12 @@ section = "Espacios de trabajo"
 add_cheat("Super + 1…9", "Ir al espacio N del monitor actual")
 add_cheat("Super + SHIFT + 1…9", "Mover la ventana al espacio N")
 add_cheat("Super + CTRL + 1…9", "Enviar la ventana al espacio N (sin seguirla)")
+if ctx.groups > 1 then
+    section = "Grupos de escritorios"
+    add_cheat("Super + ALT + 1…" .. ctx.groups, "Ir al grupo N")
+    add_cheat("Super + ALT + SHIFT + 1…" .. ctx.groups, "Mover la ventana al grupo N")
+    add_cheat("Super + ALT + CTRL + 1…" .. ctx.groups, "Enviar la ventana al grupo N (sin seguirla)")
+end
 section = "Multimedia"
 add_cheat("Teclas multimedia", "Volumen, micrófono, brillo y reproductor")
 
@@ -211,6 +232,28 @@ hl.define_submap("hd-switcher", function()
         end)
     end
     hl.bind("Escape", close)
+end)
+
+-- Modo «groups» (selector de grupos, Super+G): Tab/flechas recorren, Enter cambia al grupo,
+-- 1..N van directos, Shift+1..N mueven la ventana enfocada a ese grupo, Escape cierra.
+hl.define_submap("hd-groups", function()
+    for _, key in ipairs({ "Tab", "Down", "Right", "SUPER + G" }) do
+        hl.bind(key, exec(ctx.ctl("popup groups-nav next")), { repeating = true })
+    end
+    for _, key in ipairs({ "SHIFT + Tab", "Up", "Left" }) do
+        hl.bind(key, exec(ctx.ctl("popup groups-nav prev")), { repeating = true })
+    end
+    for _, key in ipairs({ "Return", "KP_Enter", "space" }) do
+        hl.bind(key, exec(ctx.ctl("popup groups-select")))
+    end
+    for group = 1, math.min(ctx.groups, 9) do
+        hl.bind(tostring(group), exec(ctx.ctl("popup groups-select " .. group)))
+        hl.bind("SHIFT + " .. group, exec(ctx.ctl("popup groups-move " .. group)))
+    end
+    hl.bind("Escape", function()
+        hl.exec_cmd(ctx.ctl("popup close"))
+        hl.dispatch(dsp.submap("reset"))
+    end)
 end)
 
 -- Modo «power» (menú de energía): Tab/flechas recorren las opciones y, en la confirmación,

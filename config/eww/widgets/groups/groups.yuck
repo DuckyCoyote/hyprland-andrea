@@ -1,0 +1,48 @@
+;; Selector de grupos de escritorios (Super+G o clic en el grupo de la barra).
+;; Cada grupo tiene sus propios espacios en todos los monitores; cambiar de grupo cambia todas las
+;; pantallas a la vez y las ventanas de cada grupo siguen donde estaban.
+;; Teclado (modo «groups» del compositor): Tab/flechas marcan, Enter va, 1..N van directos,
+;; Shift+1..N envían la ventana enfocada a ese grupo, Escape cierra.
+
+(defwindow groups
+  :geometry (geometry :x "0" :y "0" :width "820px" :anchor "center")
+  :stacking "overlay"
+  :focusable false
+  :namespace "hd-popup"
+  (popup-frame :name "groups-popup"
+    (box :class "groups-header" :space-evenly false :spacing 10
+      (label :class "glyph c-accent" :text "󰌨")
+      (label :class "panel-title" :halign "start" :hexpand true :text "Grupos de escritorios")
+      (label :class "dim small" :text "Tab / ←→ elegir · Enter o 1–${arraylength(wm.groups ?: [])} ir · Esc cerrar"))
+    (box :class "groups-grid" :spacing 10
+      (for g in {wm.groups ?: []}
+        (box :class "group-card ${g.active ? 'active' : ''} ${popup.sel == g.index ? 'selected' : ''}"
+             :orientation "v" :space-evenly false
+          (eventbox :cursor "pointer"
+            (button :class "group-main" :onclick "desktopctl popup groups-select ${g.number}"
+                    :tooltip "Ir a ${g.name}"
+              (box :orientation "v" :space-evenly false :spacing 8
+                (box :space-evenly false :spacing 8
+                  (label :class "group-number" :text {g.number})
+                  (label :class "group-name" :halign "start" :hexpand true :limit-width 14 :text {g.name})
+                  (label :class "group-badge" :visible {g.active} :text "actual"))
+                (label :class "group-count" :halign "start"
+                       :text {g.windows == 0 ? "Sin ventanas" : g.windows == 1 ? "1 ventana" : "${g.windows} ventanas"})
+                (box :class "group-apps" :space-evenly false :spacing 6 :halign "start"
+                  (label :class "group-empty" :visible {arraylength(g.apps ?: []) == 0} :text "—")
+                  (for icon in {g.apps ?: []}
+                    (image :path icon :image-width 22 :image-height 22))))))
+          (eventbox :cursor "pointer" :visible {!g.active && (wm.windows?.[wm.focused]?.class ?: "") != ""}
+            (button :class "group-move" :onclick "desktopctl popup groups-move ${g.number}"
+                    :tooltip "Enviar «${wm.windows?.[wm.focused]?.title ?: ''}» a ${g.name} (Shift+${g.number})"
+              (box :space-evenly false :spacing 6 :halign "center"
+                (label :class "glyph" :text "󰁔")
+                (label :text "Enviar ventana aquí")))))))
+    (box :class "groups-footer" :space-evenly false :spacing 8
+      :visible {(wm.windows?.[wm.focused]?.class ?: "") != ""}
+      (label :class "dim small" :text "Ventana enfocada:")
+      (image :visible {(wm.windows?.[wm.focused]?.icon ?: "") != ""}
+             :path {(wm.windows?.[wm.focused]?.icon ?: "") != "" ? wm.windows[wm.focused].icon : "${EWW_CONFIG_DIR}/../../assets/icons/blank.png"}
+             :image-width 16 :image-height 16)
+      (label :class "small" :limit-width 60 :text {wm.windows?.[wm.focused]?.title ?: ""})
+      (label :class "dim small" :hexpand true :halign "end" :text "Shift+N la envía al grupo N"))))

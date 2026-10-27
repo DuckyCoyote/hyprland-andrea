@@ -13,9 +13,9 @@ from .. import config, eww, paths
 from ..daemon import Source
 
 POPUPS = {"launcher", "startmenu", "settings", "power", "network", "bluetooth", "audio", "updates", "media", "weather", "calendar",
-          "notifications", "keymap", "switcher"}
+          "notifications", "keymap", "switcher", "groups"}
 # Modo de teclado del compositor mientras el popup está abierto (por defecto: Escape cierra)
-KEY_MODES = {"switcher": "switcher", "power": "power"}
+KEY_MODES = {"switcher": "switcher", "power": "power", "groups": "groups"}
 # Menú de energía: orden de las filas y acciones que piden confirmación (power.yuck)
 POWER_ACTIONS = ["lock", "suspend", "hibernate", "logout", "reboot", "poweroff"]
 POWER_CONFIRM = {"logout", "reboot", "poweroff"}
@@ -23,7 +23,7 @@ CLOSER = "popup-closer"
 # Con la barra inferior (bar_style «taskbar») los popups se abren abajo, junto a la barra, en el
 # lado de su botón; los centrados no cambian. El lanzador pasa a ser el menú de inicio.
 BOTTOM_LEFT = {"weather"}
-CENTERED = {"keymap", "switcher", "startmenu"}
+CENTERED = {"keymap", "switcher", "startmenu", "groups"}
 # Tras abrir o cerrar con toggle, se ignoran más toggles durante este tiempo (doble clic o clics
 # impacientes): abrir y cerrar a la vez una ventana pesada como Configuración bloquea Eww.
 TOGGLE_COOLDOWN = 0.5
@@ -86,7 +86,7 @@ class PopupSource(Source):
         if self.state["open"] != name or self.state["monitor"] != monitor:
             await self._close_windows()
         self.state.update(open=name, monitor=monitor, tab=tab or self.state["tab"] if name == self.state["open"] else tab, confirm="",
-                          sel=self._power_actions()[0] if name == "power" else "", csel="")
+                          sel=self._initial_sel(name), csel="")
         self.publish(dict(self.state))
         if config.load().get("popups", {}).get("close_on_click_outside", True):
             await asyncio.to_thread(eww.open_window, "popup_closer", CLOSER, screen)
@@ -159,6 +159,33 @@ class PopupSource(Source):
         if action:
             self.state["sel"] = action
         self.publish(dict(self.state))
+
+    def _initial_sel(self, name: str) -> str:
+        if name == "power":
+            return self._power_actions()[0]
+        if name == "groups":  # preselecciona el grupo visible
+            return str(self.wm.group)
+        return ""
+
+    # ---- selector de grupos de escritorios (modo «groups» del compositor) -----
+    async def cmd_groups_nav(self, direction: str = "next") -> str:
+        count = len((self.hub.get("wm") or {}).get("groups", [])) or 1
+        i = int(self.state["sel"] or 0) + (-1 if direction == "prev" else 1)
+        self.state["sel"] = str(i % count)
+        self.publish(dict(self.state))
+        return self.state["sel"]
+
+    async def cmd_groups_select(self, number: str = "") -> str:
+        """Enter (grupo marcado) o 1..N: cierra el selector y cambia a ese grupo."""
+        number = number or str(int(self.state["sel"] or 0) + 1)
+        await self.cmd_close()
+        return await self.wm.cmd_group(number)
+
+    async def cmd_groups_move(self, number: str = "") -> str:
+        """Shift+1..N o el botón de una tarjeta: envía la ventana enfocada a ese grupo sin cerrar
+        el selector (así se pueden repartir varias)."""
+        number = number or str(int(self.state["sel"] or 0) + 1)
+        return await self.wm.cmd_group_move(number)
 
     # ---- teclado del menú de energía (modo «power» del compositor) -----------
     def _power_actions(self) -> list[str]:

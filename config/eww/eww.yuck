@@ -24,3 +24,4 @@
 (include "./widgets/notifications/notifications.yuck")
 (include "./widgets/keymap/keymap.yuck")
 (include "./widgets/switcher/switcher.yuck")
+(include "./widgets/groups/groups.yuck")

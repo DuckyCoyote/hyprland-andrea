@@ -5,8 +5,10 @@ preselecciona la anterior. El teclado lo captura el compositor con el modo «swi
 (config/hypr/modules/keybinds.lua): Tab/flechas llaman a `next`/`prev`, Enter a `select` y
 Escape a `popup close`. Elegir una ventana la enfoca en su monitor y espacio de trabajo.
 """
+from .. import config
 from ..daemon import Source
-from .wm import ID_STRIDE
+from ..config import group_names
+from .wm import GROUP_STRIDE, ID_STRIDE, group_of
 
 MAX_ITEMS = 14
 
@@ -32,15 +34,19 @@ class SwitcherSource(Source):
 
     async def _load(self) -> None:
         monitors = {m["name"]: m for m in self.wm.monitors}
+        names = group_names(config.load())
         items = []
         for c in (await self.wm.wm.clients())[:MAX_ITEMS]:
             mon = monitors.get(c["monitor"], {})
             if c["minimized"]:
                 where = "Minimizada"
             else:
-                base = mon.get("index", 0) * ID_STRIDE
+                group = group_of(c["workspace"])
+                base = group * GROUP_STRIDE + mon.get("index", 0) * ID_STRIDE
                 slot = c["workspace"] - base if base < c["workspace"] <= base + ID_STRIDE else c["workspace"]
                 where = f"Escritorio {slot} · Monitor {mon.get('index', 0) + 1}"
+                if len(names) > 1:
+                    where = f"{names[min(group, len(names) - 1)]} · {where}"
             items.append({"i": len(items), "address": c["address"], "class": c["class"],
                           "title": c["title"] or c["class"], "where": where, "minimized": c["minimized"],
                           "icon": await self.wm.window_icon(c["class"]) if c["class"] else ""})

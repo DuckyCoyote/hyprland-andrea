@@ -20,8 +20,11 @@
 
 ;; ════ Diseño «Cápsulas»: grupos independientes ══════════════════════════════
 (defwidget bar-capsules [monitor modules]
+  ;; los márgenes de los lados mantienen la separación con los espacios cuando un lado es tan
+  ;; ancho (p. ej. reproductor + indicadores) que el centerbox desplaza el centro
   (centerbox :class "bar"
     (box :halign "start" :space-evenly false :spacing {appearance.spacing ?: 8}
+         :style "margin-right: ${appearance.spacing ?: 8}px"
       (box :visible {matches(modules, ",launcher,")} (bar-launcher :monitor monitor))
       (box :visible {matches(modules, ",quicklaunch,") || matches(modules, ",window,")}
         (bar-quicklaunch :monitor monitor :modules modules))
@@ -29,6 +32,7 @@
     (box :halign "center" :visible {matches(modules, ",workspaces,") && wm.has_workspaces}
       (bar-workspaces :monitor monitor))
     (box :halign "end" :space-evenly false :spacing {appearance.spacing ?: 8}
+         :style "margin-left: ${appearance.spacing ?: 8}px"
       (box :visible {matches(modules, ",media,") && media.active == true} (bar-media :monitor monitor))
       (box :visible {matches(modules, ",system,")} (bar-system :monitor monitor :modules modules)))))
 
@@ -79,6 +83,16 @@
           (label :class "weather-temp" :text "${weather.temp ?: '--'}${weather.unit ?: '°C'}"))))))
 
 ;; ── Grupo C: espacios de trabajo ────────────────────────────────────────────
+;; Grupo de escritorios visible: clic abre el selector (Super+G), rueda cambia de grupo
+(defwidget ws-group-chip [monitor class]
+  (eventbox :cursor "pointer" :visible {arraylength(wm.groups ?: []) > 1}
+            :onscroll "desktopctl wm group {}"
+    (button :class "ws-group-chip ${class}" :onclick "desktopctl popup toggle groups ${monitor}"
+            :tooltip "Grupo de escritorios: ${wm.group_name ?: ''} (clic: selector · rueda: cambiar)"
+      (box :space-evenly false :spacing 6
+        (label :class "ws-group-glyph" :text "󰌨")
+        (label :class "ws-group-name" :text {wm.group_name ?: ""})))))
+
 (defwidget bar-workspaces [monitor]
   (eventbox :onscroll "desktopctl wm scroll ${monitor} {}"
     (box :class "bar-group workspaces" :space-evenly false :spacing 10
@@ -114,6 +128,12 @@
     ;; Bandeja del sistema (StatusNotifierItem: Discord, Steam…)
     (box :visible {matches(modules, ",tray,")} :class "tray"
       (systray :spacing 10 :icon-size 18 :prepend-new true))
+    ;; Grupo de escritorios (solo el icono; el nombre va en el tooltip): clic = selector, rueda = cambiar
+    (eventbox :cursor "pointer" :onscroll "desktopctl wm group {}"
+              :visible {matches(modules, ",workspaces,") && wm.has_workspaces && arraylength(wm.groups ?: []) > 1}
+      (button :onclick "desktopctl popup toggle groups ${monitor}"
+              :tooltip "Grupo de escritorios: ${wm.group_name ?: ''} (clic: selector · rueda: cambiar)"
+        (label :class "sys-glyph c-accent" :text "󰌨")))
     ;; Notificaciones
     (eventbox :cursor "pointer"
       (button :onclick "desktopctl popup toggle notifications ${monitor}" :onrightclick "desktopctl notifications dnd toggle"
@@ -197,6 +217,8 @@
       (label :class "rect-glyph" :text ""))))
 
 (defwidget rect-workspaces [monitor]
+  (box :space-evenly false :spacing 6
+  (ws-group-chip :monitor monitor :class "rect-ws-group")
   (eventbox :onscroll "desktopctl wm scroll ${monitor} {}"
     (box :class "rect-workspaces" :space-evenly false :spacing 6
       (for ws in {wm.workspaces[monitor] ?: []}
@@ -209,7 +231,7 @@
               (label :class "rws-empty" :visible {arraylength(ws.apps ?: []) == 0} :xalign 0.5 :text "—")
               (box :visible {arraylength(ws.apps ?: []) > 0} :space-evenly false :spacing 4
                 (for icon in {ws.apps ?: []}
-                  (image :path icon :image-width 16 :image-height 16))))))))))
+                  (image :path icon :image-width 16 :image-height 16)))))))))))
 
 (defwidget rect-window [monitor]
   (box :class "rect-window" :space-evenly false :spacing 8
@@ -314,6 +336,8 @@
       (label :class "arcade-glyph" :text ""))))
 
 (defwidget arcade-workspaces [monitor]
+  (box :space-evenly false :spacing 6
+  (ws-group-chip :monitor monitor :class "arcade-island")
   (eventbox :onscroll "desktopctl wm scroll ${monitor} {}"
     (box :class "arcade-island" :space-evenly false :spacing 6
       (for ws in {wm.workspaces[monitor] ?: []}
@@ -321,7 +345,7 @@
           (button :class "aws ${ws.state}" :onclick "desktopctl wm focus ${ws.id}"
                   :tooltip "Espacio ${ws.label}${ws.state == 'urgent' ? ' (requiere atención)' : ''}"
             (image :path "${EWW_CONFIG_DIR}/../../assets/icons/${ws.state == 'active' ? 'pacman' : ws.state == 'empty' ? 'empty' : 'ghost'}.png"
-                   :image-width 18 :image-height 18)))))))
+                   :image-width 18 :image-height 18))))))))
 
 ;; Reproductor: icono del reproductor, título y los controles en su propia isla
 (defwidget arcade-media [monitor]

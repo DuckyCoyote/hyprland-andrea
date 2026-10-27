@@ -1,4 +1,4 @@
-"""Tema `wm`: monitores, espacios de trabajo por monitor y gestión de las barras."""
+"""Tema `wm`: monitores, espacios de trabajo por monitor, grupos de escritorios y barras."""
 import asyncio
 import os
 import shlex
@@ -6,12 +6,19 @@ import time
 
 from .. import config, eww
 from ..daemon import Source
+from ..config import group_names
 from ..util import Debouncer, log
 from ..wm import detect
 
 # Los espacios de cada monitor ocupan un bloque de ids: monitor 0 -> 1..N, monitor 1 -> 11..N+10...
-# config/hypr/modules/workspaces.lua usa exactamente la misma regla.
+# Cada grupo de escritorios repite los bloques 100 ids más arriba: grupo 2 -> 101..N+100, 111...
+# config/hypr/modules/workspaces.lua y ctx.lua usan exactamente la misma regla.
 ID_STRIDE = 10
+GROUP_STRIDE = 100
+
+
+def group_of(workspace_id: int | None) -> int:
+    return workspace_id // GROUP_STRIDE if workspace_id and workspace_id > 0 else 0
 
 
 class WmSource(Source):
@@ -28,6 +35,9 @@ class WmSource(Source):
         self._restarts: list[float] = []
         self._refresh = Debouncer(0.03, self.refresh)
         self._monitors_changed = Debouncer(0.5, self.sync_bars)
+        self.group = 0
+        self._last_ws: dict[tuple[int, str], int] = {}  # (grupo, monitor) -> último espacio visible
+        self._switching = asyncio.Lock()
 
     async def start(self) -> None:
         log(f"adaptador de compositor: {self.wm.name}")
@@ -83,7 +93,21 @@ class WmSource(Source):
     async def refresh(self) -> None:
         settings = config.load()
         per_monitor = int(settings.get("workspaces", {}).get("per_monitor", 6))
+        names = group_names(settings)
         self.monitors = self.ordered_monitors(await self.wm.monitors())
+        # el grupo visible es el del monitor enfocado; los demás monitores lo siguen
+        focused_mon = next((m for m in self.monitors if m["focused"]), self.monitors[0] if self.monitors else None)
+        group = group_of(focused_mon["active_workspace"]) if focused_mon else 0
+        group = min(group, len(names) - 1)
+        changed, self.group = group != self.group, group
+        for m in self.monitors:
+            if m["active_workspace"] and m["active_workspace"] > 0:
+                self._last_ws[(group_of(m["active_workspace"]), m["name"])] = m["active_workspace"]
+        # solo cuando el grupo enfocado cambia (p. ej. Alt+Tab a una ventana de otro grupo): así un
+        # monitor que no pueda mostrar el grupo no provoca un bucle de cambios
+        if changed and not self._switching.locked() and any(
+                group_of(m["active_workspace"]) != group for m in self.monitors if m["active_workspace"]):
+            asyncio.create_task(self.show_group(group))
         existing = {w["id"]: w for w in await self.wm.workspaces()}
         # iconos de las aplicaciones abiertas en cada espacio (barra «rectángulo»): uno por clase
         apps: dict[int, list[str]] = {}
@@ -95,11 +119,13 @@ class WmSource(Source):
         result, used = {}, set()
 
         for index, mon in enumerate(self.monitors):
-            base = index * ID_STRIDE
+            base = group * GROUP_STRIDE + index * ID_STRIDE
             items = []
             ids = [base + slot for slot in range(1, per_monitor + 1)]
-            # espacios que viven en este monitor pero fuera de su bloque (p. ej. tras desconectar otro monitor)
-            ids += sorted(i for i, w in existing.items() if w["monitor"] == mon["name"] and i not in ids)
+            # espacios del grupo que viven en este monitor pero fuera de su bloque (p. ej. tras
+            # desconectar otro monitor)
+            ids += sorted(i for i, w in existing.items()
+                          if w["monitor"] == mon["name"] and i not in ids and group_of(i) == group)
             for wid in ids:
                 w = existing.get(wid)
                 if w and w["monitor"] != mon["name"]:
@@ -124,6 +150,16 @@ class WmSource(Source):
                                     "icon": await self.window_icon(cls) if cls else ""}
 
         focused = next((m["name"] for m in self.monitors if m["focused"]), "")
+        groups = []
+        for g, name in enumerate(names):
+            wins = [c for c in clients if not c["minimized"] and group_of(c["workspace"]) == g]
+            icons = []
+            for c in wins:
+                icon = await self.window_icon(c["class"]) if c["class"] else ""
+                if icon and icon not in icons:
+                    icons.append(icon)
+            groups.append({"index": g, "number": g + 1, "name": name, "active": g == group,
+                           "windows": len(wins), "apps": icons[:8]})
         self.publish({
             "wm": self.wm.name,
             "windows": windows,
@@ -132,6 +168,9 @@ class WmSource(Source):
             "focused": focused,
             "monitors": self.monitors,
             "workspaces": result,
+            "group": group,
+            "group_name": names[group],
+            "groups": groups,
         })
 
     async def tasks(self, clients: list[dict], focused_class: str) -> list[dict]:
@@ -258,6 +297,57 @@ class WmSource(Source):
         # pesada (Configuración) justo tras recargar lo bloqueaba
         await asyncio.sleep(0.4)
         await self.hub.sources["popup"].reopen()
+
+    # ---- grupos de escritorios ---------------------------------------------------
+    def _group_target(self, group: int, mon: dict) -> int:
+        """Espacio que mostrará `mon` al pasar al grupo: el último que vio ahí o el primero."""
+        base = group * GROUP_STRIDE + mon["index"] * ID_STRIDE
+        return self._last_ws.get((group, mon["name"]), base + 1)
+
+    async def show_group(self, group: int, focus_ws: int | None = None) -> None:
+        """Muestra el grupo en todos los monitores (cada uno en su último espacio de ese grupo).
+        Las ventanas no se mueven: cada grupo conserva sus espacios y su distribución."""
+        async with self._switching:
+            mons = self.ordered_monitors(await self.wm.monitors())
+            for index, m in enumerate(mons):
+                m["index"] = index
+            focused = next((m["name"] for m in mons if m["focused"]), mons[0]["name"] if mons else "")
+            targets = {m["name"]: self._group_target(group, m) for m in mons}
+            if focus_ws is not None:
+                targets[focused] = focus_ws
+            if all(m["active_workspace"] == targets[m["name"]] for m in mons):
+                return
+            await self.wm.show_workspaces(targets, focused)
+            await asyncio.sleep(0.05)  # que lleguen los eventos antes de volver a comparar grupos
+        self._refresh()
+
+    def _parse_group(self, value: str) -> int:
+        count = len(group_names(config.load()))
+        if value in ("next", "prev", "down", "up"):  # up/down: rueda del ratón
+            return (self.group + (1 if value in ("next", "down") else -1)) % count
+        return max(0, min(int(value) - 1, count - 1))
+
+    async def cmd_group(self, value: str = "next") -> str:
+        """`wm group N|next|prev`: cambia de grupo de escritorios (N empieza en 1)."""
+        group = self._parse_group(value)
+        await self.show_group(group)
+        return group_names(config.load())[group]
+
+    async def cmd_group_move(self, value: str, follow: str = "") -> str:
+        """`wm group-move N|next|prev [follow]`: envía la ventana enfocada al grupo N, al espacio
+        que ese grupo muestra en el mismo monitor (con `follow`, también cambia al grupo)."""
+        group = self._parse_group(value)
+        mons = self.ordered_monitors(await self.wm.monitors())
+        for index, m in enumerate(mons):
+            m["index"] = index
+        mon = next((m for m in mons if m["focused"]), None)
+        if mon is None or group == group_of(mon["active_workspace"]):
+            return "la ventana ya está en ese grupo"
+        target = self._group_target(group, mon)
+        await self.wm.move_active_window(target)
+        if follow:
+            await self.show_group(group, target)
+        return f"ventana enviada a {group_names(config.load())[group]}"
 
     # ---- órdenes -------------------------------------------------------------
     async def cmd_focus(self, workspace_id: str) -> None:

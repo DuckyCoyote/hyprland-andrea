@@ -41,15 +41,27 @@ ctx.index = {}
 for i, name in ipairs(ctx.order) do ctx.index[name] = i - 1 end
 
 ctx.STRIDE = 10
+-- Grupos de escritorios: cada grupo repite los espacios de todos los monitores 100 ids más arriba
+-- (grupo 1 -> 1..9, 11..19…; grupo 2 -> 101..109, 111..119…). Los cambia desktopd (`wm group`).
+ctx.GROUP_STRIDE = 100
+ctx.groups = ctx.S.workspace_groups or 1
 
---- Id del espacio `slot` (1..9) en el monitor enfocado: monitor 0 -> 1..9, monitor 1 -> 11..19…
+--- Grupo visible (0, 1…): el del espacio activo del monitor enfocado.
+function ctx.group()
+    local ws = hl.get_active_workspace()
+    if ws and ws.id and ws.id > 0 then return ws.id // ctx.GROUP_STRIDE end
+    return 0
+end
+
+--- Id del espacio `slot` (1..9) en el monitor enfocado y el grupo visible: monitor 0 -> 1..9,
+--- monitor 1 -> 11..19…
 function ctx.slot_id(slot)
     local mon = hl.get_active_monitor()
     local idx = 0
     if mon then
         idx = ctx.index[mon.name] or (#ctx.order + (mon.id or 0))
     end
-    return idx * ctx.STRIDE + slot
+    return ctx.group() * ctx.GROUP_STRIDE + idx * ctx.STRIDE + slot
 end
 
 function ctx.ctl(args)

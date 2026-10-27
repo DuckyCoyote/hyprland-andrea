@@ -1,0 +1,61 @@
+// Selector de grupos de escritorios (Super+G)
+.groups-popup { padding: $gap-lg + 4px; }
+.groups-header {
+  margin-bottom: $gap;
+  .glyph { font-size: $font-xl; }
+}
+.groups-footer { margin-top: $gap; }
+.group-card {
+  border-radius: $radius;
+  border: 2px solid transparent;
+  background-color: rgba($surface0, 0.55);
+  @include transition(background-color, border-color);
+  &.active { background-color: rgba($accent, 0.12); }
+  &.selected { border-color: $accent; }
+}
+.group-main {
+  padding: 12px 14px;
+  border-radius: $radius;
+  &:hover { background-color: $hover; }
+  .group-number {
+    min-width: 24px;
+    min-height: 24px;
+    border-radius: $radius-pill;
+    background-color: $surface1;
+    font-weight: bold;
+    font-size: $font-sm;
+  }
+  .group-name { font-weight: bold; font-size: $font-size + 1px; }
+  .group-badge {
+    padding: 1px 8px;
+    border-radius: $radius-pill;
+    background-color: $accent;
+    color: $base;
+    font-size: $font-sm;
+    font-weight: bold;
+  }
+  .group-count { font-size: $font-sm; color: $fg-dim; }
+  .group-apps { min-height: 22px; }
+  .group-empty { color: $fg-muted; }
+}
+.group-card.active .group-number { background-color: $accent; color: $base; }
+.group-move {
+  margin: 0 8px 8px 8px;
+  padding: 4px 10px;
+  border-radius: $radius-sm;
+  font-size: $font-sm;
+  color: $fg-dim;
+  background-color: rgba($surface1, 0.6);
+  @include transition(background-color, color);
+  &:hover { background-color: $hover-strong; color: $fg; }
+}
+
+// Chip del grupo visible en las barras (solo si hay más de un grupo)
+.ws-group-chip {
+  padding: 2px 12px;
+  @include transition(background-color);
+  .ws-group-glyph { color: $accent; font-size: $glyph-size; padding-right: 2px; }
+  .ws-group-name { font-weight: bold; font-size: $font-size - 1px; }
+  &:hover { background-color: $hover; }
+}
+.rect-ws-group { border-radius: $radius-sm + 2px; background-color: rgba($surface0, 0.6); }

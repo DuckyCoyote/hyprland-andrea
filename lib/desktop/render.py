@@ -148,6 +148,7 @@ def hypr_settings(ctx: dict) -> str:
         "apps": {k: config.app_command(s, k) for k in s.get("apps", {})},
         "monitors": s.get("monitors", []),
         "workspaces_per_monitor": int(s.get("workspaces", {}).get("per_monitor", 6)),
+        "workspace_groups": len(config.group_names(s)),
         "keyboard": s.get("keyboard", {}),
         "input": s.get("input", {}),
     }

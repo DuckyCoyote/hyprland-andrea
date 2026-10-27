@@ -44,6 +44,8 @@
 
 ;; Espacios como «Rectángulo» pero compactos: número y hasta tres iconos pequeños
 (defwidget task-workspaces [monitor]
+  (box :space-evenly false :spacing 4
+  (ws-group-chip :monitor monitor :class "task-island")
   (eventbox :onscroll "desktopctl wm scroll ${monitor} {}"
     (box :class "task-island task-workspaces" :space-evenly false :spacing 3
       (for ws in {wm.workspaces[monitor] ?: []}
@@ -54,7 +56,7 @@
               (label :class "tws-num" :text {ws.label})
               (box :visible {arraylength(ws.apps ?: []) > 0} :space-evenly false :spacing 2
                 (for icon in {jq(ws.apps ?: [], '.[0:3]')}
-                  (image :path icon :image-width 14 :image-height 14))))))))))
+                  (image :path icon :image-width 14 :image-height 14)))))))))))
 
 ;; ── Centro ──────────────────────────────────────────────────────────────────
 (defwidget task-start [monitor]

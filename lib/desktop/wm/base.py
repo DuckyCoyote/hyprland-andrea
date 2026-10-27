@@ -57,6 +57,15 @@ class WindowManager:
     async def focus_workspace(self, workspace_id: int) -> None:
         pass
 
+    async def show_workspaces(self, targets: dict[str, int], focus: str) -> None:
+        """Muestra a la vez un espacio en cada monitor ({monitor: id}) y deja el foco en el
+        monitor `focus` (grupos de escritorios). Por defecto: uno tras otro, `focus` el último."""
+        for mon in sorted(targets, key=lambda m: m == focus):
+            await self.focus_workspace(targets[mon])
+
+    async def move_active_window(self, workspace_id: int) -> None:
+        """Envía la ventana enfocada a otro espacio sin seguirla."""
+
     async def popup_mode(self, enabled: bool, mode: str = "popup") -> None:
         """Activa/desactiva un modo de teclado: «popup» (Escape cierra) o «switcher» (Tab/Enter
         recorren y eligen ventana en el selector)."""

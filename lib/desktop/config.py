@@ -113,3 +113,12 @@ def resolve_app(settings: dict, command: str) -> str:
     if command.startswith("@"):
         return app_command(settings, command[1:])
     return command
+
+
+DEFAULT_GROUPS = ["Trabajo", "Personal", "Ocio", "Extra"]
+
+
+def group_names(settings: dict) -> list[str]:
+    """Nombres de los grupos de escritorios (workspaces.groups; máx. 9)."""
+    names = settings.get("workspaces", {}).get("groups", DEFAULT_GROUPS)
+    return [str(n) for n in names][:9] or DEFAULT_GROUPS[:1]

@@ -33,7 +33,9 @@
   },
 
   "workspaces": {
-    "per_monitor": 6
+    "per_monitor": 6,
+    "_groups": "Grupos de escritorios (Super+G): cada uno con sus propios espacios en todos los monitores",
+    "groups": ["Trabajo", "Personal", "Ocio", "Extra"]
   },
 
   "keyboard": {
