@@ -7,3 +7,6 @@ distribuidos bajo GPL-3.0. Por ello este proyecto se distribuye también bajo GP
 
 `teams.png` es un dibujo propio de este proyecto (no es el logotipo oficial de Microsoft Teams)
 hecho en el mismo estilo que los anteriores; se distribuye bajo la misma licencia del proyecto.
+
+`tux-rainbow.png` es el glifo de Tux de Nerd Fonts (MIT) relleno con franjas de colores, generado
+para la barra «Platinum»; se distribuye bajo la misma licencia del proyecto.

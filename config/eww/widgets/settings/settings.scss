@@ -42,6 +42,7 @@ progress.meter, .meter {
   .swatch { min-height: 26px; border-radius: $radius-pill; margin: 0 2px; }
   .theme-name { font-size: $font-sm; }
 }
+// Estilos de barra y de lanzador: rejilla de 3 columnas
 .bar-card {
   padding: 6px;
   border-radius: $radius;
@@ -53,6 +54,7 @@ progress.meter, .meter {
     border-radius: $radius-sm;
     border: $border-width solid $border;
     background-color: $bg-sunken;
+    &.launcher-preview { padding: 8px 10px; }
   }
   .bar-mini {
     min-height: 14px;
@@ -60,6 +62,9 @@ progress.meter, .meter {
     border-radius: $radius-sm;
     border: 1px solid $border-strong;
     background-color: $bg;
+    &.aqua { border-radius: 2px; border-color: transparent; border-bottom: 1px solid rgba($text, 0.1); background-color: rgba($base, 0.8); }
+    &.platinum { border-radius: 0; border-color: $overlay0; border-bottom: 2px solid $text; background-color: $surface2; }
+    &.cyber { border-radius: 0; border-color: rgba($accent, 0.3); border-bottom: 2px solid $accent; background-color: $crust; }
   }
   .bar-mini-dot {
     min-width: 8px;
@@ -71,6 +76,12 @@ progress.meter, .meter {
     &.island { background-color: $surface1; }
     &.green { background-color: $green; }
     &.red { background-color: $red; }
+    &.teal { background-color: $teal; }
+    &.blue { background-color: $blue; }
+    &.square { border-radius: 0; }
+    &.dim { background-color: rgba($fg-muted, 0.5); }
+    &.ink { background-color: $text; }
+    &.rainbow { background-image: linear-gradient(to bottom, $green, $yellow, $peach, $red, $mauve, $sky); }
   }
 }
 .accent-dot {

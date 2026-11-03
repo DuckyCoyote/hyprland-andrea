@@ -12,7 +12,7 @@ import time
 from .. import config, eww, paths
 from ..daemon import Source
 
-POPUPS = {"launcher", "startmenu", "settings", "power", "network", "bluetooth", "audio", "updates", "media", "weather", "calendar",
+POPUPS = {"launcher", "launcher-rofi", "startmenu", "settings", "power", "network", "bluetooth", "audio", "updates", "media", "weather", "calendar",
           "notifications", "keymap", "switcher", "groups"}
 # Modo de teclado del compositor mientras el popup está abierto (por defecto: Escape cierra)
 KEY_MODES = {"switcher": "switcher", "power": "power", "groups": "groups"}
@@ -23,7 +23,11 @@ CLOSER = "popup-closer"
 # Con la barra inferior (bar_style «taskbar») los popups se abren abajo, junto a la barra, en el
 # lado de su botón; los centrados no cambian. El lanzador pasa a ser el menú de inicio.
 BOTTOM_LEFT = {"weather"}
-CENTERED = {"keymap", "switcher", "startmenu", "groups"}
+CENTERED = {"keymap", "switcher", "groups"}
+# Lanzadores (appearance.launcher_style → ventana). Con un atajo de teclado (monitor «focused»)
+# se abren en el centro; desde el icono de la barra, pegados a él: debajo con la barra superior
+# (el icono está a la izquierda) y encima con la inferior (botón de inicio centrado).
+LAUNCHERS = {"grid": "launcher", "rofi": "launcher-rofi", "start": "startmenu"}
 # Tras abrir o cerrar con toggle, se ignoran más toggles durante este tiempo (doble clic o clics
 # impacientes): abrir y cerrar a la vez una ventana pesada como Configuración bloquea Eww.
 TOGGLE_COOLDOWN = 0.5
@@ -37,6 +41,7 @@ class PopupSource(Source):
         self.state = {"open": "", "monitor": "", "tab": "", "confirm": "", "sel": "", "csel": ""}
         self._busy = asyncio.Lock()  # una sola apertura/cierre a la vez
         self._last_toggle = 0.0
+        self._from_key = False  # el popup abierto se pidió con un atajo (centrado)
 
     async def start(self) -> None:
         self.publish(self.state)
@@ -51,9 +56,16 @@ class PopupSource(Source):
         return config.load().get("appearance", {}).get("bar_style") == "taskbar"
 
     def _alias(self, name: str) -> str:
-        return "startmenu" if name == "launcher" and self._taskbar() else name
+        if name != "launcher":
+            return name
+        from .appearance import launcher_style
+        return LAUNCHERS[launcher_style(config.load().get("appearance", {}))]
 
     def _placement(self, name: str) -> dict:
+        if name in LAUNCHERS.values():
+            if self._from_key:
+                return {"anchor": "center", "pos": "0x0"}
+            return {"anchor": "bottom center" if self._taskbar() else "top left", "pos": "0x0"}
         if name in CENTERED or not self._taskbar():
             return {}
         return {"anchor": "bottom left" if name in BOTTOM_LEFT else "bottom right", "pos": "10x0"}
@@ -67,13 +79,16 @@ class PopupSource(Source):
         async with self._busy:
             return await self._open(name, monitor, tab)
 
-    async def _open(self, name: str, monitor: str = "", tab: str = "") -> str:
+    async def _open(self, name: str, monitor: str = "", tab: str = "", from_key: bool | None = None) -> str:
+        if name in ("launcher", *LAUNCHERS.values()):  # todos los lanzadores siguen el estilo elegido
+            name = "launcher"
         name = self._alias(name)
+        self._from_key = monitor in ("", "focused") if from_key is None else from_key
         if name not in POPUPS:
             return f"popup desconocido: {name}"
         monitor = await self._resolve_monitor(monitor)
         screen = self.wm.screen_of(monitor)
-        if name == "launcher":  # abre en Favoritas (o en Todas si aún no hay ninguna)
+        if name in ("launcher", "launcher-rofi"):  # abre en Favoritas (o en Todas si aún no hay ninguna)
             favs = config.read_state(paths.UI_STATE, {}).get("favorites", [])
             await asyncio.to_thread(eww.update, launcher_query="",
                                     launcher_cat="favorites" if favs else "all")
@@ -99,11 +114,12 @@ class PopupSource(Source):
             return "ignorado (doble clic)"
         async with self._busy:
             try:
-                name = self._alias(name)
+                name = self._alias("launcher" if name in LAUNCHERS.values() else name)
                 target = await self._resolve_monitor(monitor)
                 if self.state["open"] == name and self.state["monitor"] == target and (not tab or tab == self.state["tab"]):
                     return await self._close()
-                return await self._open(name, target, tab)
+                # el monitor ya está resuelto: se indica aparte si la orden vino de un atajo
+                return await self._open(name, target, tab, from_key=monitor in ("", "focused"))
             finally:
                 self._last_toggle = time.monotonic()
 

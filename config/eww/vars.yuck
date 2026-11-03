@@ -17,11 +17,16 @@
 (deflisten system     :initial `{"battery":{"present":false},"services":[]}`             "desktop-sub system")
 (deflisten notifications :initial `{"toasts":[],"history":[],"count":0,"dnd":false}` "desktop-sub notifications")
 (deflisten switcher   :initial `{"items":[],"index":0}`                                  "desktop-sub switcher")
+(deflisten recon      :initial `{"available":false,"vpn":{},"lan":{},"target":{}}`      "desktop-sub recon")
 (deflisten apps       :initial `{"apps":[],"categories":[]}`                             "desktop-sub apps")
 
 ;; Reloj: una sola consulta por minuto (formato en el idioma del sistema)
 (defpoll clock :interval "5s" :initial `{"time":"--:--","date":""}`
   `date '+{"time":"%H:%M","date":"%A, %B %d","day":"%d","month":"%B","year":"%Y","short":"%a %d. %b"}'`)
+
+;; Hora con segundos de la barra Platinum (Mac OS 9): solo se consulta con ese diseño activo
+(defpoll platinum_clock :interval "1s" :initial "" :run-while {appearance.bar_style == "platinum"}
+  `date '+%H:%M:%S'`)
 
 ;; Posición del reproductor: solo mientras el panel multimedia está abierto
 (defpoll media_position :interval "1s" :initial "0" :run-while {popup.open == "media" && media.active}

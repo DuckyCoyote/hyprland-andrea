@@ -7,8 +7,10 @@ tokens de `styles/tokens/` — nunca colores, fuentes ni tamaños literales.
 | Widget | Ventana | Datos (tema del daemon) | Acciones (`desktopctl …`) |
 |---|---|---|---|
 | Barra | `bar` (una por monitor) | `wm`, `audio`, `network`, `media`, `updates`, `weather`, `system` | `wm focus/scroll`, `popup toggle …` |
+| Barra «Cyber» | `bar` (`bar_style: cyber`) | `recon` (VPN, LAN, objetivo) y los de la barra | `recon target <ip> [nombre]`, `recon target-paste/target-clear`, `recon copy vpn|lan|target` |
 | Barra inferior | `bar-bottom` (estilo «Inferior», `bar_style: taskbar`; la abre desktopd en lugar de `bar`) | `wm` (incluye `wm.tasks`: accesos rápidos fijados + apps abiertas), `weather` y los de la barra | `wm task <clase>`, `system quick <n>`, `popup toggle …` |
 | Lanzador | `launcher` | `apps` | `apps launch/favorite/rescan` |
+| Lanzador Rofi | `launcher-rofi` (`launcher_style: rofi`) | `apps` (incluye `cmd`, el programa de cada app) | `apps launch/favorite` |
 | Menú de inicio | `startmenu` (con la barra inferior: Super+R y el botón de inicio lo abren en lugar del lanzador) | `apps`, `system` | `apps launch/favorite` |
 | Configuración | `settings` | `appearance`, `system`, `wm` + los de audio/red | `appearance set/reset/apply`, `system …` |
 | Energía | `power` | `system`, `popup.confirm` | `system power lock|suspend|hibernate|logout|reboot|poweroff` |
@@ -107,3 +109,53 @@ a `eww open`), y el lanzador es el menú de inicio: buscador, «Fijadas» (las f
 fija o desfija), «Recientes», «Todas las apps» por letra y un pie con usuario, bloqueo,
 configuración y energía.
 
+## Barras «Aqua» y «Platinum» (macOS oscuro y Mac OS 9)
+
+Configuración → Apariencia → Barra. Pensadas para los temas «Aqua Oscuro» y «Platinum». Ambas van
+de borde a borde (anulan el margen de `.bar`) y, en lugar de los menús Archivo/Edición/Ver, muestran
+entradas útiles con el mismo aspecto de menú:
+
+- **Aqua** (`mac-dark-theme.webp`): franja fina translúcida, Inter, todo monocromo. Izquierda:
+  logo de Garuda (clic: lanzador · derecho: energía), aplicación enfocada en negrita (clic: selector
+  de ventanas), grupo y escritorios como entradas de menú (el activo resaltado) y lo que suena.
+  Derecha: `CPU n% RAM n%` (clic: Configuración → Sistema), bandeja, actualizaciones (solo si hay),
+  micrófono (solo si está abierto, en naranja como en macOS), Bluetooth, red, volumen, batería,
+  buscar (lanzador), «centro de control» (notificaciones; derecho: no molestar) y fecha y hora.
+- **Platinum** (`mac-retro-*.png`): gris con línea negra, negrita y resaltado invertido en azul
+  Platinum. Tux arcoíris en el sitio de la manzana (`assets/icons/tux-rainbow.png`), «Ajustes»,
+  grupo, escritorios y reproductor; a la derecha la hora con segundos (`platinum_clock`, solo se
+  consulta con esta barra), extras y el menú de aplicaciones de OS 9 (icono + aplicación enfocada →
+  selector de ventanas). Fuente: Inter en negrita.
+
+## Barra «Cyber» (pentesting y bug bounty)
+
+Configuración → Apariencia → Barra → «Cyber» (pensada para el tema Cyber, colores de
+`cyber.png`): franja negra monoespaciada con aristas rectas y una línea de neón abajo.
+
+- Izquierda: calavera (lanzador), espacios como celdas `01…06` y la ventana enfocada como un
+  prompt `usuario@equipo ❯ app título_`.
+- Centro: **objetivo** (`TARGET 10.10.11.42:8080 // nombre ●`). Admite puerto: el punto es verde
+  si el puerto acepta conexiones TCP (sin puerto, si responde a ping) y rojo si no; cada 15 s.
+  Clic: copiar `host[:puerto]` · clic central: tomarlo del portapapeles (la primera IP o dominio,
+  con su puerto; de una URL, host y puerto) · clic derecho: borrar. Sin objetivo, el clic lo pega.
+  Desde la terminal: `desktopctl recon target 10.10.11.42:8080 Nombre`.
+- Derecha: **VPN** (primera interfaz `tun*`/`tap*`/`wg*`/`ppp*` con IPv4: OpenVPN de HTB/THM,
+  WireGuard…) y **LAN** (interfaz de la ruta por defecto que no es túnel); clic copia la IP, clic
+  derecho en la LAN abre el panel de red. Después indicadores, fecha/hora y energía.
+
+La fuente `recon` (`lib/desktop/sources/recon.py`) escucha `ip monitor address route`. El
+objetivo persiste en `~/.local/state/hyprland-desktop/target.json` y, solo la dirección, en
+`~/.local/state/hyprland-desktop/target` (y el puerto en `…/target-port`), para usarlo en la shell:
+`set -gx TARGET (cat ~/.local/state/hyprland-desktop/target)`.
+
+## Estilos de lanzador
+
+Configuración → Apariencia → Lanzador (`appearance.launcher_style`): «Cuadrícula» (`launcher`),
+«Rofi» (`launcher-rofi`, como rofi.webp: secciones como iconos con la activa en verde, barra
+«Sección : búsqueda» con el recuento, filas de icono + nombre + programa y la elegida en azul) o
+«Inicio» (`startmenu`). Sin elegir, la barra inferior usa «Inicio» y las demás «Cuadrícula».
+`desktopctl popup toggle launcher` abre siempre el estilo elegido.
+
+Posición (`popup.py`, `_placement`): con el atajo de teclado (monitor `focused`) se abre en el
+centro de la pantalla; desde el icono de la barra, pegado a él (debajo con las barras superiores,
+encima y centrado con la inferior).

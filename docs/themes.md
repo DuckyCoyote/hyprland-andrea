@@ -39,6 +39,8 @@ tocar el repositorio, en `~/.config/hyprland-desktop/themes/`:
   cambiar después en el selector; al volver a un tema sin acento propio se recupera el de settings.json.
 - `base`/`mantle`/`crust`: fondos de mayor a menor luminosidad (en temas claros, al revés que
   el texto). `surface*`: tarjetas y bordes. `overlay*`/`subtext*`: textos secundarios.
+- `window_rounding` (opcional): radio de las ventanas de Hyprland con este tema, en lugar del
+  «Radio» de Apariencia (Platinum usa `3`). No afecta a la barra ni a los popups.
 - Los 14 colores con nombre se ofrecen como acentos en el selector.
 
 Aparece automáticamente en el selector. Para activarlo: `desktopctl appearance set theme <archivo-sin-.json>`.
@@ -80,5 +82,5 @@ Para soportar otro programa (p. ej. rofi o GTK), añade una función a `render.p
 Temas incluidos: Catppuccin (Mocha, Macchiato, Frappé, Latte), Monocromático (oscuro), Monocromático
 claro (barra clara + sistema monocromo oscuro), Gruvbox (oscuro y claro, con los acentos «faded»
 en el claro), Nordic (paleta de [nordic.nvim](https://github.com/AlexvZyl/nordic.nvim), acento `sky`) y Tokyo Night
-(la misma paleta que el `override_palette` de monokai-pro de la configuración de Neovim, acento `blue`). Las aplicaciones Qt/KDE no se tiñen: siguen el esquema de `~/.config/kdeglobals`
+(la misma paleta que el `override_palette` de monokai-pro de la configuración de Neovim, acento `blue`) y Cyber (negro, rojo neón y cian de `cyber.png`, acento `red`; pensado para la barra «Cyber») Aqua Oscuro (grises y colores de sistema de macOS oscuro, acento `blue` #0A84FF; sistema `tokyonight`: kitty, Neovim y bordes en Tokyo Night; para la barra «Aqua»), Platinum (claro, gris de Mac OS 9 y azul `#333399`; sistema `mono`: kitty, Neovim y bordes oscuros como en «Monocromático claro»; para la barra «Platinum») y Hack The Box (azul noche `#141D2B` y verde `#9FEF00` de HTB, acento `green`). Las aplicaciones Qt/KDE no se tiñen: siguen el esquema de `~/.config/kdeglobals`
 (compartido con la sesión de Plasma).

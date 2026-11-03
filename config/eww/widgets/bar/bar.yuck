@@ -16,7 +16,10 @@
   (box
     (box :visible {(appearance.bar_style ?: "capsules") == "capsules"} (bar-capsules :monitor monitor :modules modules))
     (box :visible {appearance.bar_style == "rectangle"} (bar-rectangle :monitor monitor :modules modules))
-    (box :visible {appearance.bar_style == "arcade"} (bar-arcade :monitor monitor :modules modules))))
+    (box :visible {appearance.bar_style == "arcade"} (bar-arcade :monitor monitor :modules modules))
+    (box :visible {appearance.bar_style == "cyber"} (bar-cyber :monitor monitor :modules modules))
+    (box :visible {appearance.bar_style == "aqua"} (bar-aqua :monitor monitor :modules modules))
+    (box :visible {appearance.bar_style == "platinum"} (bar-platinum :monitor monitor :modules modules))))
 
 ;; ════ Diseño «Cápsulas»: grupos independientes ══════════════════════════════
 (defwidget bar-capsules [monitor modules]
@@ -401,3 +404,317 @@
   (eventbox :cursor "pointer"
     (button :class "arcade-island arcade-clock" :onclick "desktopctl popup toggle calendar ${monitor}" :tooltip {clock.date}
       (label :class "arcade-time" :text {clock.time}))))
+
+;; ════ Diseño «Cyber» (cyber.png): pentesting y bug bounty ════════════════════
+;; Franja negra con una línea de neón abajo. Izquierda: calavera, espacios y la ventana como un
+;; prompt. Centro: el objetivo (clic: copiar · central: pegar del portapapeles · derecho: borrar).
+;; Derecha: VPN (tun0…) y LAN con su IP (clic: copiar), indicadores, hora y energía.
+(defwidget bar-cyber [monitor modules]
+  (centerbox :class "bar-cyber"
+    (box :halign "start" :space-evenly false :spacing 10
+      (box :visible {matches(modules, ",launcher,")} (cyber-launcher :monitor monitor))
+      (box :visible {matches(modules, ",workspaces,") && wm.has_workspaces} (cyber-workspaces :monitor monitor))
+      (box :visible {matches(modules, ",window,")} (cyber-window :monitor monitor)))
+    (box :halign "center"
+      (cyber-target :monitor monitor))
+    (box :halign "end" :space-evenly false :spacing 10
+      (box :visible {matches(modules, ",media,") && media.active == true} (cyber-media :monitor monitor))
+      (cyber-net :monitor monitor)
+      (box :visible {matches(modules, ",system,")} (cyber-indicators :monitor monitor :modules modules))
+      (box :visible {matches(modules, ",clock,")} (cyber-clock :monitor monitor))
+      (eventbox :cursor "pointer"
+        (button :class "cyber-power" :onclick "desktopctl popup toggle power ${monitor}" :tooltip "Energía"
+          (label :class "cyber-glyph" :text "󰐥"))))))
+
+(defwidget cyber-launcher [monitor]
+  (eventbox :cursor "pointer"
+    (button :class "cyber-launcher" :tooltip "Aplicaciones"
+            :onclick "desktopctl popup toggle launcher ${monitor}"
+            :onrightclick "desktopctl popup toggle settings ${monitor} appearance"
+      (label :class "cyber-glyph" :text "󰚌"))))
+
+;; Espacios como celdas numeradas: activo en neón, ocupado en cian, vacío apagado
+(defwidget cyber-workspaces [monitor]
+  (box :space-evenly false :spacing 6
+  (ws-group-chip :monitor monitor :class "cyber-cell")
+  (eventbox :onscroll "desktopctl wm scroll ${monitor} {}"
+    (box :class "cyber-workspaces" :space-evenly false :spacing 2
+      (for ws in {wm.workspaces[monitor] ?: []}
+        (eventbox :cursor "pointer"
+          (button :class "cws ${ws.state}" :onclick "desktopctl wm focus ${ws.id}"
+                  :tooltip "Espacio ${ws.label}${ws.state == 'urgent' ? ' (requiere atención)' : ''}"
+            (label :text {strlength(ws.label) == 1 ? "0${ws.label}" : ws.label}))))))))
+
+;; La ventana enfocada como un prompt: usuario@equipo ❯ aplicación  título
+(defwidget cyber-window [monitor]
+  (box :class "cyber-window" :space-evenly false :spacing 6
+       :tooltip {wm.windows?.[monitor]?.title ?: ""}
+    (label :class "cyber-user" :text "${system.user ?: 'root'}")
+    (label :class "cyber-at" :text "@")
+    (label :class "cyber-host" :text "${system.host ?: ''}")
+    (label :class "cyber-prompt" :text "❯")
+    (label :class "cyber-app" :visible {(wm.windows?.[monitor]?.class ?: "") != ""} :text {wm.windows?.[monitor]?.name ?: ""})
+    (label :class "cyber-title" :limit-width 40 :text {wm.windows?.[monitor]?.title ?: ""})
+    (label :class "cyber-cursor" :text "_")))
+
+;; Objetivo actual: IP/dominio, nombre de la máquina y si responde a ping
+(defwidget cyber-target [monitor]
+  (eventbox :cursor "pointer"
+    (button :class "cyber-target ${recon.target?.set == true ? 'set' : 'unset'} ${recon.target?.alive == true ? 'alive' : recon.target?.checked == true ? 'down' : ''}"
+            :onclick {recon.target?.set == true ? "desktopctl recon copy target" : "desktopctl recon target-paste"}
+            :onmiddleclick "desktopctl recon target-paste"
+            :onrightclick "desktopctl recon target-clear"
+            :tooltip {recon.target?.set == true
+                      ? "Objetivo ${recon.target.addr ?: recon.target.ip}${recon.target.checked ? (recon.target.alive ? ((recon.target.port ?: '') != '' ? ' · puerto abierto' : ' · responde') : ((recon.target.port ?: '') != '' ? ' · puerto cerrado' : ' · sin respuesta')) : ''}  ·  clic: copiar · central: pegar · derecho: borrar"
+                      : "Sin objetivo. Clic: tomarlo del portapapeles (o: desktopctl recon target <ip[:puerto]> [nombre])"}
+      (box :space-evenly false :spacing 8
+        (label :class "cyber-glyph target-glyph" :text "󰓾")
+        (label :class "cyber-key" :text "TARGET")
+        (label :class "cyber-target-ip" :text {recon.target?.set == true ? (recon.target.addr ?: recon.target.ip) : "none"})
+        (label :class "cyber-target-name" :visible {(recon.target?.name ?: "") != ""} :limit-width 18 :text "// ${recon.target?.name ?: ''}")
+        (label :class "cyber-dot" :visible {recon.target?.checked == true} :text "●")))))
+
+;; VPN (tun0, wg0…) y LAN: clic copia la IP; la LAN abre la red con el derecho
+(defwidget cyber-net [monitor]
+  (box :class "cyber-net" :space-evenly false :spacing 12 :visible {recon.available == true}
+    (eventbox :cursor "pointer"
+      (button :class "cyber-vpn ${recon.vpn?.active == true ? 'on' : 'off'}"
+              :onclick "desktopctl recon copy vpn"
+              :tooltip {recon.vpn?.active == true ? "VPN ${recon.vpn.iface}: ${recon.vpn.ip} (clic: copiar)" : "Sin VPN (tun/wg)"}
+        (box :space-evenly false :spacing 6
+          (label :class "cyber-glyph" :text "󰖂")
+          (label :class "cyber-key" :text {recon.vpn?.active == true ? recon.vpn.iface : "VPN"})
+          (label :class "cyber-value" :text {recon.vpn?.active == true ? recon.vpn.ip : "off"}))))
+    (eventbox :cursor "pointer"
+      (button :class "cyber-lan ${(recon.lan?.ip ?: '') == '' ? 'off' : 'on'}"
+              :onclick "desktopctl recon copy lan"
+              :onrightclick "desktopctl popup toggle network ${monitor}"
+              :tooltip {network.kind == "wifi" ? "Wi-Fi ${network.ssid ?: ''} · ${recon.lan?.iface ?: ''} (clic: copiar · derecho: redes)" : "${recon.lan?.iface ?: 'Sin conexión'} (clic: copiar · derecho: redes)"}
+        (box :space-evenly false :spacing 6
+          (label :class "cyber-glyph" :text {network.kind == "wifi" ? (network.glyph ?: "󰌗") : "󰌗"})
+          (label :class "cyber-value" :text {(recon.lan?.ip ?: "") != "" ? recon.lan.ip : "offline"}))))))
+
+(defwidget cyber-media [monitor]
+  (eventbox :cursor "pointer"
+    (button :class "cyber-media" :onclick "desktopctl popup toggle media ${monitor}" :onrightclick "desktopctl media toggle"
+            :tooltip "${media.player_label ?: ''}: ${media.title ?: ''}${(media.artist ?: '') != '' ? ' · ' + media.artist : ''}"
+      (box :space-evenly false :spacing 6
+        (label :class "cyber-glyph" :text {media.playing == true ? "󰎈" : "󰏤"})
+        (label :class "cyber-value" :limit-width 22 :text {media.title ?: ""})))))
+
+(defwidget cyber-indicators [monitor modules]
+  (box :class "cyber-cell cyber-indicators" :space-evenly false :spacing 12
+    (box :visible {matches(modules, ",tray,")} :class "tray"
+      (systray :spacing 10 :icon-size 16 :prepend-new true))
+    (eventbox :cursor "pointer"
+      (button :onclick "desktopctl popup toggle notifications ${monitor}" :onrightclick "desktopctl notifications dnd toggle"
+              :tooltip {notifications.dnd == true ? "No molestar activado" : "${notifications.count ?: 0} notificaciones"}
+        (box :space-evenly false :spacing 4
+          (label :class "cyber-glyph ${notifications.dnd == true ? 'off' : (notifications.count ?: 0) > 0 ? 'hot' : ''}"
+                 :text {notifications.dnd == true ? "󰂛" : (notifications.count ?: 0) > 0 ? "󰂞" : "󰂚"})
+          (label :class "cyber-value" :visible {(notifications.count ?: 0) > 0} :text {notifications.count ?: 0}))))
+    (eventbox :cursor "pointer" :visible {updates.available ?: true}
+      (button :onclick "desktopctl popup toggle updates ${monitor}" :onrightclick "desktopctl updates refresh"
+              :tooltip {updates.status == "checking" ? "Buscando actualizaciones…" : "${updates.count} actualizaciones pendientes"}
+        (box :space-evenly false :spacing 4
+          (label :class "cyber-glyph ${updates.status == 'checking' ? 'off' : (updates.count ?: 0) > 0 ? 'hot' : ''}" :text "󰏗")
+          (label :class "cyber-value" :visible {(updates.count ?: 0) > 0} :text {updates.count ?: 0}))))
+    (eventbox :cursor "pointer" :visible {bluetooth.available == true}
+      (button :onclick "desktopctl popup toggle bluetooth ${monitor}" :onrightclick "desktopctl bluetooth toggle-power"
+              :tooltip {bluetooth.powered != true ? "Bluetooth desactivado" : (bluetooth.connected_count ?: 0) > 0 ? "Bluetooth: ${bluetooth.connected_names}" : "Bluetooth activado"}
+        (label :class "cyber-glyph ${bluetooth.powered == true ? '' : 'off'}" :text {bluetooth.glyph ?: "󰂯"})))
+    (eventbox :cursor "pointer" :visible {audio.has_source == true} :onscroll "desktopctl audio step source {}"
+      (button :onclick "desktopctl audio mute source" :onrightclick "desktopctl popup open audio ${monitor} in"
+              :tooltip "Micrófono: ${audio.source?.description ?: ''} (${audio.source?.muted == true ? 'silenciado' : (audio.source?.volume ?: 0) + '%'})"
+        (label :class "cyber-glyph ${audio.source?.muted == true ? 'off' : 'hot'}" :text {audio.source?.muted == true ? "󰍭" : "󰍬"})))
+    (eventbox :cursor "pointer" :visible {audio.available == true} :onscroll "desktopctl audio step sink {}"
+      (button :onclick "desktopctl popup toggle audio ${monitor}" :onrightclick "desktopctl audio mute sink"
+              :tooltip "${audio.sink?.description ?: ''}"
+        (box :space-evenly false :spacing 4
+          (label :class "cyber-glyph ${audio.sink?.muted == true ? 'off' : ''}" :text {audio.sink?.glyph ?: "󰕾"})
+          (label :class "cyber-value" :text "${audio.sink?.muted == true ? 'mute' : (audio.sink?.volume ?: 0) + '%'}"))))
+    (box :visible {system.battery?.present == true} :space-evenly false :spacing 4 :tooltip "${system.battery?.status ?: ''}"
+      (label :class "cyber-glyph ${(system.battery?.percent ?: 100) < 20 && system.battery?.charging != true ? 'hot' : ''}"
+             :text {system.battery?.glyph ?: "󰁹"})
+      (label :class "cyber-value" :text "${system.battery?.percent ?: ''}%"))
+    (eventbox :cursor "pointer"
+      (button :onclick "desktopctl popup toggle settings ${monitor} system" :tooltip "${system.user ?: ''}@${system.host ?: ''}"
+        (label :class "cyber-glyph" :text "󰗹")))))
+
+(defwidget cyber-clock [monitor]
+  (eventbox :cursor "pointer"
+    (button :class "cyber-cell cyber-clock" :onclick "desktopctl popup toggle calendar ${monitor}" :tooltip {clock.date}
+      (box :space-evenly false :spacing 8
+        (label :class "cyber-date" :text {clock.short ?: ""})
+        (label :class "cyber-time" :text {clock.time})))))
+
+;; ════ Diseño «Aqua» (mac-dark-theme.webp): barra de menús de macOS oscuro ═══════════
+;; Franja fina de borde a borde, translúcida, texto sin iconos de colores. Donde macOS pone
+;; Archivo/Edición/Ver… aquí van «menús» útiles: la aplicación enfocada, los escritorios y lo
+;; que suena. A la derecha, los extras de estado monocromos, CPU/RAM y la fecha a lo Mac.
+(defwidget bar-aqua [monitor modules]
+  (centerbox :class "bar-aqua"
+    (box :halign "start" :space-evenly false :spacing 2
+      (box :visible {matches(modules, ",launcher,")}
+        (eventbox :cursor "pointer"
+          (button :class "aqua-item aqua-logo" :tooltip "${system.os ?: 'Linux'} · clic: aplicaciones · derecho: energía"
+                  :onclick "desktopctl popup toggle launcher ${monitor}"
+                  :onrightclick "desktopctl popup toggle power ${monitor}"
+            (label :class "aqua-glyph" :text ""))))
+      ;; nombre de la aplicación en negrita, como el menú de la app en macOS
+      (box :visible {matches(modules, ",window,")}
+        (eventbox :cursor "pointer"
+          (button :class "aqua-item aqua-app" :onclick "desktopctl popup toggle switcher ${monitor}"
+                  :tooltip {(wm.windows?.[monitor]?.title ?: "") != "" ? "${wm.windows[monitor].title} (clic: cambiar de ventana)" : "Escritorio"}
+            (label :text {(wm.windows?.[monitor]?.name ?: "") != "" ? wm.windows[monitor].name : (system.host ?: "Escritorio")}))))
+      (box :visible {matches(modules, ",workspaces,") && wm.has_workspaces} (aqua-workspaces :monitor monitor))
+      (box :visible {matches(modules, ",media,") && media.active == true} (aqua-media :monitor monitor)))
+    (box)
+    (box :halign "end" :space-evenly false :spacing 2
+      (box :visible {matches(modules, ",system,")} (aqua-extras :monitor monitor :modules modules))
+      (box :visible {matches(modules, ",clock,")}
+        (eventbox :cursor "pointer"
+          (button :class "aqua-item aqua-clock" :onclick "desktopctl popup toggle calendar ${monitor}" :tooltip {clock.date}
+            (label :text "${clock.short ?: ''}   ${clock.time}")))))))
+
+;; Escritorios como entradas de menú: el activo queda resaltado como un menú abierto
+(defwidget aqua-workspaces [monitor]
+  (box :space-evenly false :spacing 2
+    (eventbox :cursor "pointer" :visible {arraylength(wm.groups ?: []) > 1} :onscroll "desktopctl wm group {}"
+      (button :class "aqua-item aqua-group" :onclick "desktopctl popup toggle groups ${monitor}"
+              :tooltip "Grupo de escritorios (clic: selector · rueda: cambiar)"
+        (label :text {wm.group_name ?: ""})))
+    (eventbox :onscroll "desktopctl wm scroll ${monitor} {}"
+      (box :space-evenly false :spacing 2
+        (for ws in {wm.workspaces[monitor] ?: []}
+          (eventbox :cursor "pointer"
+            (button :class "aqua-item aqua-ws ${ws.state}" :onclick "desktopctl wm focus ${ws.id}"
+                    :tooltip "Escritorio ${ws.label}${ws.state == 'urgent' ? ' (requiere atención)' : ''}"
+              (label :text {ws.label}))))))))
+
+(defwidget aqua-media [monitor]
+  (eventbox :cursor "pointer"
+    (button :class "aqua-item aqua-media" :onclick "desktopctl popup toggle media ${monitor}" :onrightclick "desktopctl media toggle"
+            :tooltip "${media.player_label ?: ''} · clic: reproductor · derecho: pausa"
+      (box :space-evenly false :spacing 6
+        (label :class "aqua-glyph small" :text {media.playing == true ? "󰎈" : "󰏤"})
+        (label :limit-width 34 :text "${media.title ?: ''}${(media.artist ?: '') != '' ? ' — ' + media.artist : ''}")))))
+
+;; Extras de la barra de menús: monocromos y sin cifras salvo donde aportan
+(defwidget aqua-extras [monitor modules]
+  (box :space-evenly false :spacing 2
+    (eventbox :cursor "pointer"
+      (button :class "aqua-item aqua-stats" :onclick "desktopctl popup toggle settings ${monitor} system"
+              :tooltip "Uso de CPU y memoria (clic: sistema)"
+        (box :space-evenly false :spacing 10
+          (label :text "CPU ${round(EWW_CPU.avg, 0)}%")
+          (label :text "RAM ${round(EWW_RAM.used_mem_perc, 0)}%"))))
+    (box :visible {matches(modules, ",tray,")} :class "aqua-tray"
+      (systray :spacing 12 :icon-size 15 :prepend-new true))
+    (eventbox :cursor "pointer" :visible {(updates.available ?: true) && (updates.count ?: 0) > 0}
+      (button :class "aqua-item" :onclick "desktopctl popup toggle updates ${monitor}" :onrightclick "desktopctl updates refresh"
+              :tooltip "${updates.count ?: 0} actualizaciones pendientes"
+        (box :space-evenly false :spacing 4
+          (label :class "aqua-glyph" :text "󰏗")
+          (label :class "aqua-count" :text {updates.count ?: 0}))))
+    (eventbox :cursor "pointer" :visible {audio.has_source == true && audio.source?.muted != true}
+      (button :class "aqua-item" :onclick "desktopctl audio mute source" :onrightclick "desktopctl popup open audio ${monitor} in"
+              :tooltip "Micrófono activo: ${audio.source?.description ?: ''} (clic: silenciar)"
+        (label :class "aqua-glyph mic" :text "󰍬")))
+    (eventbox :cursor "pointer" :visible {bluetooth.available == true}
+      (button :class "aqua-item" :onclick "desktopctl popup toggle bluetooth ${monitor}" :onrightclick "desktopctl bluetooth toggle-power"
+              :tooltip {bluetooth.powered != true ? "Bluetooth desactivado" : (bluetooth.connected_count ?: 0) > 0 ? "Bluetooth: ${bluetooth.connected_names}" : "Bluetooth activado"}
+        (label :class "aqua-glyph ${bluetooth.powered == true ? '' : 'off'}" :text {bluetooth.glyph ?: "󰂯"})))
+    (eventbox :cursor "pointer" :visible {network.available == true}
+      (button :class "aqua-item" :onclick "desktopctl popup toggle network ${monitor}"
+              :tooltip {network.kind == "wifi" ? "Wi-Fi: ${network.ssid}" : network.kind == "ethernet" ? "Ethernet: ${network.ethernet?.connection}" : "Sin conexión"}
+        (label :class "aqua-glyph ${network.kind == 'disconnected' ? 'off' : ''}" :text {network.glyph ?: "󰤭"})))
+    (eventbox :cursor "pointer" :visible {audio.available == true} :onscroll "desktopctl audio step sink {}"
+      (button :class "aqua-item" :onclick "desktopctl popup toggle audio ${monitor}" :onrightclick "desktopctl audio mute sink"
+              :tooltip "${audio.sink?.description ?: ''}: ${audio.sink?.muted == true ? 'silenciado' : (audio.sink?.volume ?: 0) + '%'}"
+        (label :class "aqua-glyph ${audio.sink?.muted == true ? 'off' : ''}" :text {audio.sink?.glyph ?: "󰕾"})))
+    (box :class "aqua-item" :visible {system.battery?.present == true} :space-evenly false :spacing 4
+         :tooltip "${system.battery?.status ?: ''}"
+      (label :class "aqua-count" :text "${system.battery?.percent ?: ''}%")
+      (label :class "aqua-glyph" :text {system.battery?.glyph ?: "󰁹"}))
+    (eventbox :cursor "pointer"
+      (button :class "aqua-item" :onclick "desktopctl popup toggle launcher ${monitor}" :tooltip "Buscar aplicaciones"
+        (label :class "aqua-glyph" :text "󰍉")))
+    ;; «Centro de control»: notificaciones (clic) y no molestar (derecho)
+    (eventbox :cursor "pointer"
+      (button :class "aqua-item" :onclick "desktopctl popup toggle notifications ${monitor}" :onrightclick "desktopctl notifications dnd toggle"
+              :tooltip {notifications.dnd == true ? "No molestar activado" : "${notifications.count ?: 0} notificaciones (derecho: no molestar)"}
+        (label :class "aqua-glyph ${(notifications.count ?: 0) > 0 && notifications.dnd != true ? 'dot' : ''}"
+               :text {notifications.dnd == true ? "󰽥" : "󰔡"})))))
+
+;; ════ Diseño «Platinum» (mac-retro-*.png): barra de menús de Mac OS 9 ═════════════════
+;; Gris claro con línea negra abajo y menús en negrita que se invierten al pasar (azul
+;; Platinum). El Tux arcoíris ocupa el sitio de la manzana; a la derecha, la hora con
+;; segundos, los extras y el menú de aplicaciones (aplicación enfocada → selector de ventanas).
+(defwidget bar-platinum [monitor modules]
+  (box :class "bar-platinum" :space-evenly false :spacing 0
+    (box :visible {matches(modules, ",launcher,")}
+      (eventbox :cursor "pointer"
+        (button :class "pt-item pt-logo" :tooltip "Aplicaciones (derecho: energía)"
+                :onclick "desktopctl popup toggle launcher ${monitor}"
+                :onrightclick "desktopctl popup toggle power ${monitor}"
+          (image :path "${EWW_CONFIG_DIR}/../../assets/icons/tux-rainbow.png" :image-width 14 :image-height 16))))
+    (eventbox :cursor "pointer"
+      (button :class "pt-item" :onclick "desktopctl popup toggle settings ${monitor} appearance" :tooltip "Paneles de control"
+        (label :text "Ajustes")))
+    (box :visible {matches(modules, ",workspaces,") && wm.has_workspaces} :space-evenly false
+      (eventbox :cursor "pointer" :visible {arraylength(wm.groups ?: []) > 1} :onscroll "desktopctl wm group {}"
+        (button :class "pt-item" :onclick "desktopctl popup toggle groups ${monitor}" :tooltip "Grupo de escritorios"
+          (label :text {wm.group_name ?: ""})))
+      (eventbox :onscroll "desktopctl wm scroll ${monitor} {}"
+        (box :space-evenly false
+          (for ws in {wm.workspaces[monitor] ?: []}
+            (eventbox :cursor "pointer"
+              (button :class "pt-item pt-ws ${ws.state}" :onclick "desktopctl wm focus ${ws.id}"
+                      :tooltip "Escritorio ${ws.label}"
+                (label :text {ws.label})))))))
+    (box :visible {matches(modules, ",media,") && media.active == true}
+      (eventbox :cursor "pointer"
+        (button :class "pt-item pt-media" :onclick "desktopctl popup toggle media ${monitor}" :onrightclick "desktopctl media toggle"
+                :tooltip "${media.player_label ?: ''} · derecho: pausa"
+          (label :limit-width 30 :text "${media.playing == true ? '♪' : '‖'} ${media.title ?: ''}"))))
+    (box :hexpand true)
+    (box :visible {matches(modules, ",clock,")}
+      (eventbox :cursor "pointer"
+        (button :class "pt-item pt-clock" :onclick "desktopctl popup toggle calendar ${monitor}" :tooltip {clock.date}
+          (label :text {platinum_clock}))))
+    (box :visible {matches(modules, ",system,")} (platinum-extras :monitor monitor :modules modules))
+    (box :visible {matches(modules, ",window,")}
+      (eventbox :cursor "pointer"
+        (button :class "pt-item pt-app" :onclick "desktopctl popup toggle switcher ${monitor}"
+                :tooltip {wm.windows?.[monitor]?.title ?: "Escritorio"}
+          (box :space-evenly false :spacing 6
+            (image :path {(wm.windows?.[monitor]?.icon ?: "") != "" ? wm.windows[monitor].icon : "${EWW_CONFIG_DIR}/../../assets/icons/tux-rainbow.png"}
+                   :image-width 16 :image-height 16)
+            (label :limit-width 22 :text {(wm.windows?.[monitor]?.name ?: "") != "" ? wm.windows[monitor].name : "Finder de Linux"})))))))
+
+;; Extras al estilo de la Control Strip, con glifos negros sencillos
+(defwidget platinum-extras [monitor modules]
+  (box :space-evenly false
+    (box :visible {matches(modules, ",tray,")} :class "pt-tray"
+      (systray :spacing 10 :icon-size 16 :prepend-new true))
+    (eventbox :cursor "pointer" :visible {(updates.available ?: true) && (updates.count ?: 0) > 0}
+      (button :class "pt-item" :onclick "desktopctl popup toggle updates ${monitor}" :tooltip "${updates.count ?: 0} actualizaciones pendientes"
+        (label :class "pt-glyph" :text "󰏗 ${updates.count ?: 0}")))
+    (eventbox :cursor "pointer" :visible {bluetooth.available == true}
+      (button :class "pt-item" :onclick "desktopctl popup toggle bluetooth ${monitor}" :onrightclick "desktopctl bluetooth toggle-power"
+              :tooltip {bluetooth.powered == true ? "Bluetooth activado" : "Bluetooth desactivado"}
+        (label :class "pt-glyph ${bluetooth.powered == true ? '' : 'off'}" :text {bluetooth.glyph ?: "󰂯"})))
+    (eventbox :cursor "pointer" :visible {network.available == true}
+      (button :class "pt-item" :onclick "desktopctl popup toggle network ${monitor}"
+              :tooltip {network.kind == "wifi" ? "Wi-Fi: ${network.ssid}" : network.kind == "ethernet" ? "Ethernet" : "Sin conexión"}
+        (label :class "pt-glyph ${network.kind == 'disconnected' ? 'off' : ''}" :text {network.glyph ?: "󰤭"})))
+    (eventbox :cursor "pointer" :visible {audio.available == true} :onscroll "desktopctl audio step sink {}"
+      (button :class "pt-item" :onclick "desktopctl popup toggle audio ${monitor}" :onrightclick "desktopctl audio mute sink"
+              :tooltip "${audio.sink?.muted == true ? 'Silenciado' : 'Volumen ' + (audio.sink?.volume ?: 0) + '%'}"
+        (label :class "pt-glyph ${audio.sink?.muted == true ? 'off' : ''}" :text {audio.sink?.glyph ?: "󰕾"})))
+    (eventbox :cursor "pointer"
+      (button :class "pt-item" :onclick "desktopctl popup toggle notifications ${monitor}" :onrightclick "desktopctl notifications dnd toggle"
+              :tooltip {notifications.dnd == true ? "No molestar activado" : "${notifications.count ?: 0} notificaciones"}
+        (label :class "pt-glyph" :text {notifications.dnd == true ? "󰂛" : (notifications.count ?: 0) > 0 ? "󰂞" : "󰂚"})))
+    (box :class "pt-divider")))

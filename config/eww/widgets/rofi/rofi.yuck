@@ -1,0 +1,66 @@
+;; Lanzador «Rofi» (rofi.webp): una columna compacta con filas de icono, nombre y programa.
+;; - Cabecera: botón de modo y las secciones como píldoras (solo con ratón: ver más abajo).
+;; - Barra de entrada al estilo rofi: «Sección : búsqueda» y el recuento a la derecha.
+;; - Filas = checkbox sin indicador (como en la cuadrícula: el `button` de Eww 0.6 no responde a
+;;   Enter/Espacio). La estrella marca favoritas; clic derecho en una fila también.
+;; - Posición: la decide desktopd (popup.py): centrado con el atajo, pegado al icono desde la barra.
+
+(defwindow launcher-rofi
+  :geometry (geometry :x "0px" :y "0px" :width "580px" :height "560px" :anchor "center")
+  :stacking "overlay"
+  :focusable true
+  :namespace "hd-popup"
+  (popup-frame :name "rofi-popup"
+    (rofi-body
+      :results {jq(apps.apps ?: [],
+        '[.[] | select(.cats | contains(",${launcher_query != "" ? "all" : launcher_cat},")) | select(.search | contains("${replace(launcher_query, "[^[:alnum:] ._+-]", "")}" | ascii_downcase))]'
+        + (launcher_cat == "recent" ? ' | sort_by(-.last)' : '') + ' | .[0:60]')})))
+
+(defwidget rofi-body [results]
+  (box :class "rofi" :orientation "v" :space-evenly false :spacing 10 :vexpand true
+    (box :space-evenly false :spacing 8
+      (box :class "rofi-mode" :valign "center"
+        (label :class "glyph" :text "󰀻"))
+      ;; secciones: solo el icono; la activa (verde) muestra también su nombre, como «Applications»
+      ;; en rofi.webp. Sin scroll: dentro de uno GTK reduce cada etiqueta a su mínimo («…»)
+      (box :class "rofi-sections" :space-evenly false :spacing 4 :hexpand true :valign "center"
+        (for c in {apps.categories ?: []}
+          ;; eventbox + box, no checkbox: no reciben el foco. GTK enfoca al abrir el primer widget
+          ;; enfocable y así ese es el campo de búsqueda (se escribe sin hacer clic)
+          (eventbox :cursor "pointer" :tooltip {c.label} :onclick "${EWW_CMD} update launcher_cat=${c.id}"
+            (box :class "rofi-section ${launcher_cat == c.id && launcher_query == '' ? 'selected' : ''}"
+              (box :space-evenly false :spacing 6
+                (label :class "glyph" :text {c.glyph})
+                (label :visible {launcher_cat == c.id && launcher_query == ''} :text {c.label})))))))
+    (box :class "rofi-inputbar" :space-evenly false :spacing 6
+      (box :class "rofi-prompt" :space-evenly false
+        (label :visible {launcher_query != ""} :text "Buscar")
+        (for c in {apps.categories ?: []}
+          (label :visible {launcher_query == "" && c.id == launcher_cat} :text {c.label})))
+      (label :class "rofi-colon" :text ":")
+      ;; Sin :value a propósito (ver launcher.yuck y scripts/launcher-query.sh)
+      (input :class "rofi-input" :hexpand true
+             :onchange "${EWW_CONFIG_DIR}/scripts/launcher-query.sh '{}' ${EWW_CMD}"
+             :onaccept "desktopctl apps launch '${arraylength(results) > 0 ? results[0].id : ''}' ; ${EWW_CMD} update launcher_query=''")
+      (label :class "rofi-count" :text "${arraylength(results)} (${arraylength(apps.apps ?: [])})"))
+    (scroll :vscroll true :hscroll false :vexpand true
+      (box :orientation "v" :space-evenly false :spacing 4
+        (label :class "status-line" :visible {arraylength(results) == 0} :wrap true
+               :text {launcher_cat == "favorites" && launcher_query == ""
+                      ? "Aún no tienes favoritas: pulsa la estrella de una app (en «Todas») para añadirla."
+                      : "Sin resultados"})
+        (for app in results
+          (overlay
+            (eventbox :cursor "pointer" :onrightclick "desktopctl apps favorite '${app.id}'"
+              (checkbox :class "rofi-row ${launcher_query != '' && app.id == results[0].id ? 'first' : ''}" :tooltip {app.name}
+                        :onchecked "desktopctl apps launch '${app.id}' ; ${EWW_CMD} update launcher_query=''"
+                        :onunchecked "desktopctl apps launch '${app.id}' ; ${EWW_CMD} update launcher_query=''"
+                (box :space-evenly false :spacing 10 :hexpand true
+                  (image :path {(app.icon ?: "") != "" ? app.icon : "${EWW_CONFIG_DIR}/../../assets/icons/blank.png"} :image-width 24 :image-height 24)
+                  (label :class "rofi-name" :limit-width 28 :text {app.name})
+                  (label :class "rofi-cmd" :visible {(app.cmd ?: "") != ""} :limit-width 22 :text "(${app.cmd ?: ''})"))))
+            ;; estrella a la derecha: eventbox (no botón) para que Tab solo recorra las filas
+            (eventbox :class "rofi-star-hit" :cursor "pointer" :halign "end" :valign "center"
+                      :tooltip {app.fav ? "Quitar de favoritas" : "Añadir a favoritas"}
+                      :onclick "desktopctl apps favorite '${app.id}'"
+              (label :class "rofi-star ${app.fav ? 'on' : ''}" :text {app.fav ? "󰓎" : "󰓒"}))))))))

@@ -115,6 +115,8 @@ def _lua(value, indent: int = 0) -> str:
 
 
 def hypr_theme(ctx: dict) -> str:
+    # el redondeo lo decide el tema elegido (no el de "system")
+    rounding = ctx["theme"].get("window_rounding")
     ctx = system_ctx(ctx)
     ap, pal = ctx["ap"], ctx["pal"]
     opacity = float(ap.get("opacity", 0.92)) if _bool(ap.get("transparency", False)) else 1.0
@@ -126,7 +128,8 @@ def hypr_theme(ctx: dict) -> str:
         "urgent_border": f"rgb({_hex(pal['red'])})",
         "shadow": f"rgba({_hex(pal['crust'])}aa)",
         "background": f"rgb({_hex(pal['base'])})",
-        "rounding": int(ap.get("radius", 10)),
+        # un tema puede fijar su propio redondeo de ventanas (Platinum: casi recto, como Mac OS 9)
+        "rounding": int(rounding if rounding is not None else ap.get("radius", 10)),
         "border_size": 2,
         "gaps_in": window_gaps(ap)[0],
         "gaps_out": window_gaps(ap)[1],

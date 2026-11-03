@@ -213,7 +213,7 @@ class AppsSource(Source):
         for a in self.apps.values():
             h = history.get(a["id"], {})
             cats = list(a["cats"]) + ["all"] + (["favorites"] if a["id"] in favorites else []) + (["recent"] if h else [])
-            items.append({"id": a["id"], "name": a["name"], "icon": a["icon"], "search": a["search"],
+            items.append({"id": a["id"], "name": a["name"], "icon": a["icon"], "search": a["search"], "cmd": _short_cmd(a["exec"]),
                           "cats": "," + ",".join(cats) + ",", "fav": a["id"] in favorites,
                           "count": h.get("count", 0), "last": h.get("last", 0)})
         items.sort(key=lambda a: (-a["count"], a["name"].lower()))
@@ -251,3 +251,20 @@ class AppsSource(Source):
         state["favorites"] = sorted(favs)
         config.write_json(paths.UI_STATE, state)
         self._publish()
+
+
+def _short_cmd(exec_line: str) -> str:
+    """Programa que lanza una entrada .desktop, para mostrarlo junto al nombre (lanzador Rofi):
+    sin rutas, variables de entorno, códigos de campo ni el envoltorio de flatpak."""
+    try:
+        tokens = [t for t in shlex.split(exec_line) if t not in FIELD_CODES and not t.startswith("@@")]
+    except ValueError:
+        return ""
+    while tokens and (os.path.basename(tokens[0]) == "env" or "=" in tokens[0] or tokens[0].startswith("-")):
+        tokens.pop(0)
+    if not tokens:
+        return ""
+    if os.path.basename(tokens[0]) == "flatpak":  # flatpak run --opciones org.app.Id
+        ids = [t for t in tokens[1:] if not t.startswith("-") and t != "run"]
+        return ids[0] if ids else "flatpak"
+    return os.path.basename(tokens[0])

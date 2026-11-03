@@ -1,0 +1,49 @@
+// Lanzador «Rofi» (rofi.webp): modo en rojo, sección activa en verde, fila elegida en azul
+.rofi-popup { padding: $gap * 1.5; }
+.rofi-mode {
+  min-width: 38px;
+  min-height: 38px;
+  border-radius: $radius;
+  background-color: $red;
+  .glyph { color: $on-accent; font-size: $glyph-size; padding-left: 2px; }
+}
+.rofi-section {
+  padding: 7px 9px;
+  border-radius: $radius;
+  color: $fg-dim;
+  @include transition(background-color, color);
+  .glyph { font-size: $font-size + 2px; }
+  &.selected { background-color: $green; color: $on-accent; label { color: $on-accent; } }
+}
+.rofi-inputbar {
+  padding: 9px 14px;
+  border-radius: $radius;
+  background-color: $bg-alt;
+  .rofi-prompt label { font-weight: bold; }
+  .rofi-colon { color: $fg-dim; }
+  .rofi-input { background: none; border: none; padding: 0; min-height: 0; }
+  .rofi-count { color: $fg-dim; font-size: $font-sm; }
+}
+// la píldora es un box dentro de un eventbox: el hover lo recibe el eventbox
+eventbox:hover > .rofi-section:not(.selected) { background-color: $hover; }
+.rofi-row {
+  padding: 8px 40px 8px 12px; // a la derecha, sitio para la estrella
+  border-radius: $radius;
+  @include transition(background-color);
+  .rofi-name { font-size: $font-size + 1px; }
+  .rofi-cmd { color: $fg-dim; font-style: italic; font-size: $font-sm; }
+  &:hover { background-color: $hover; }
+  &:focus, &.first {
+    background-color: $blue;
+    label, .rofi-cmd { color: $on-accent; }
+  }
+}
+.rofi-star {
+  margin-right: 12px;
+  padding: 0 2px;
+  font-size: $font-size + 4px;
+  color: rgba($fg-muted, 0.6);
+  &.on { color: $icon-yellow; }
+}
+.rofi-star-hit:hover .rofi-star { color: $icon-yellow; }
+.rofi-row check { min-width: 1px; min-height: 1px; margin: 0 -1px 0 0; padding: 0; -gtk-icon-source: none; background: none; border: none; }

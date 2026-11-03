@@ -197,3 +197,193 @@
   &.pending image { opacity: 1; }
   &.busy image { opacity: 0.35; }
 }
+
+// ════ Diseño «Cyber» (cyber.png): franja negra, aristas rectas y una línea de neón abajo ═══
+// Monoespaciada y sin redondeos: aspecto de terminal. Neón = acento, cian = $teal.
+.bar-cyber {
+  margin: $window-gap $window-gap 0 $window-gap;
+  padding: 3px 10px;
+  min-height: 32px;
+  background-color: rgba($crust, max($surface-opacity, 0.85));
+  border: 1px solid rgba($accent, 0.25);
+  border-bottom: 2px solid $accent;
+  border-radius: 0;
+  @if $shadows { box-shadow: 0 2px 10px rgba($accent, 0.35); }
+  // la regla global `*` fija la fuente de la interfaz en cada widget: hay que repetirla en todos
+  * { font-family: "JetBrainsMono Nerd Font", "Symbols Nerd Font", monospace; }
+  button { @include transition(opacity); }
+  button:hover { opacity: 0.8; }
+  // relleno a la derecha: los glifos Nerd Font son más anchos que su avance y GTK los recorta
+  .cyber-glyph { font-size: $glyph-size - 1px; padding: 0 4px 0 1px; color: $teal; }
+  .cyber-glyph.hot { color: $accent; }
+  .cyber-glyph.off { color: $overlay0; }
+  .cyber-key { font-weight: bold; font-size: $font-size - 2px; color: $fg-dim; }
+  .cyber-value { font-size: $font-size - 1px; color: $fg; }
+}
+// Celdas: fondo apenas más claro y borde fino, sin redondear
+.cyber-cell {
+  padding: 2px 10px;
+  border-radius: 0;
+  border: 1px solid $surface1;
+  background-color: rgba($surface0, 0.5);
+}
+.cyber-launcher {
+  padding: 0 6px 0 2px;
+  .cyber-glyph { color: $accent; font-size: $glyph-size + 2px; }
+}
+.cyber-workspaces .cws {
+  padding: 1px 8px;
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+  color: $overlay0;
+  font-weight: bold;
+  @include transition(background-color, border-color, color);
+  &.occupied { color: $teal; border-bottom-color: rgba($teal, 0.35); }
+  &.active { color: $on-accent; background-color: $accent; border-bottom-color: $accent; }
+  &.urgent { color: $yellow; border-bottom-color: $yellow; }
+  &:hover { background-color: $hover; }
+  &.active:hover { background-color: $accent; }
+}
+.cyber-window {
+  font-size: $font-size - 1px;
+  .cyber-user { color: $accent; font-weight: bold; }
+  .cyber-at { color: $fg-muted; }
+  .cyber-host { color: $teal; font-weight: bold; }
+  .cyber-prompt { color: $accent; padding: 0 2px; }
+  .cyber-app { color: $fg; font-weight: bold; }
+  .cyber-title { color: $fg-dim; }
+  .cyber-cursor { color: $accent; font-weight: bold; }
+}
+// Objetivo: recuadro con esquinas marcadas; rojo si no responde, cian si responde
+.cyber-target {
+  padding: 1px 12px;
+  border-radius: 0;
+  border: 1px solid rgba($accent, 0.6);
+  border-left: 3px solid $accent;
+  background-color: rgba($accent, 0.08);
+  .target-glyph { color: $accent; }
+  .cyber-target-ip { font-weight: bold; color: $fg; }
+  .cyber-target-name { color: $teal; font-style: italic; }
+  .cyber-dot { font-size: $font-size - 3px; color: $overlay0; }
+  &.alive .cyber-dot { color: $green; }
+  &.down .cyber-dot { color: $red; }
+  &.unset {
+    border-color: $surface1;
+    border-left-color: $overlay0;
+    background-color: transparent;
+    .target-glyph, .cyber-target-ip { color: $overlay0; font-weight: normal; }
+  }
+}
+.cyber-vpn {
+  &.on .cyber-key { color: $teal; }
+  &.on .cyber-value { color: $teal; font-weight: bold; }
+  &.off .cyber-glyph, &.off .cyber-key { color: $overlay0; }
+  &.off .cyber-value { color: $red; }
+}
+.cyber-lan.off {
+  .cyber-glyph { color: $overlay0; }
+  .cyber-value { color: $red; }
+}
+.cyber-media .cyber-glyph { color: $pink; }
+.cyber-clock {
+  .cyber-date { color: $fg-dim; font-size: $font-size - 1px; }
+  .cyber-time { color: $accent; font-weight: bold; }
+}
+.cyber-power {
+  padding: 0 4px;
+  .cyber-glyph { color: $accent; }
+}
+
+// ════ Diseño «Aqua» (mac-dark-theme.webp): barra de menús de macOS oscuro ═══════════════
+// De borde a borde, fina y translúcida; todo monocromo. Las entradas se resaltan con un
+// rectángulo redondeado suave, como un menú abierto en macOS.
+.bar-aqua {
+  // la ventana `bar` hereda el margen de `.bar` (hueco entre ventanas): estas barras van de borde a borde
+  margin: -$window-gap (-$window-gap) 0 (-$window-gap);
+  padding: 0 8px;
+  min-height: 26px;
+  background-color: rgba($base, min($surface-opacity, 0.65));
+  border-bottom: 1px solid rgba($text, 0.08);
+  @if $shadows { box-shadow: 0 1px 6px rgba($crust, 0.35); }
+  * { font-family: "Inter", "Inter Variable", "Symbols Nerd Font", sans-serif; }
+  label { color: rgba($text, 0.92); font-size: $font-size + 1px; font-weight: 500; }
+}
+.aqua-item {
+  padding: 0 9px;
+  margin: 3px 0;
+  border-radius: 5px;
+  @include transition(background-color);
+  &:hover { background-color: rgba($text, 0.14); }
+}
+.bar-aqua .aqua-glyph {
+  font-family: "Symbols Nerd Font", "JetBrainsMono Nerd Font";
+  font-size: $font-size + 3px;
+  padding-right: 2px;  // los glifos Nerd Font son más anchos que su avance
+  &.small { font-size: $font-size; }
+  &.off { color: rgba($text, 0.35); }
+  &.mic { color: $peach; }
+  &.dot { color: $accent; }
+}
+.bar-aqua .aqua-logo .aqua-glyph { font-size: $font-size + 5px; }
+.bar-aqua .aqua-app label { font-weight: 800; }
+.bar-aqua .aqua-ws {
+  min-width: 14px;
+  label { color: rgba($text, 0.55); }
+  &.occupied label { color: rgba($text, 0.92); }
+  &.active { background-color: rgba($text, 0.18); }
+  &.active label { color: $text; font-weight: 700; }
+  &.urgent label { color: $peach; }
+}
+.bar-aqua .aqua-group label { font-weight: 600; }
+.bar-aqua .aqua-media label { color: rgba($text, 0.7); }
+.bar-aqua .aqua-stats label { font-size: $font-size; color: rgba($text, 0.7); font-feature-settings: "tnum"; }
+.bar-aqua .aqua-count { font-size: $font-size; }
+.bar-aqua .aqua-tray { margin: 0 6px; }
+.bar-aqua .aqua-clock label { font-weight: 500; }
+
+// ════ Diseño «Platinum» (mac-retro-*.png): barra de menús de Mac OS 9 ═══════════════════
+// Gris claro, línea negra inferior, negrita y sin redondeos. Al pasar por encima la entrada
+// se invierte con el azul Platinum (acento) como un menú desplegado.
+// Fuente: Inter en negrita (ChicagoFLF se probó y se descartó).
+.bar-platinum {
+  // la ventana `bar` hereda el margen de `.bar` (hueco entre ventanas): estas barras van de borde a borde
+  margin: -$window-gap (-$window-gap) 0 (-$window-gap);
+  padding: 0 6px;
+  min-height: 22px;
+  background-color: $base;
+  border-bottom: 1px solid $text;
+  box-shadow: inset 0 1px lighten($base, 10%);
+  * { font-family: "Inter", "Symbols Nerd Font", sans-serif; }
+  label { color: $text; font-size: $font-size + 1px; font-weight: bold; }
+}
+.pt-item {
+  padding: 1px 9px;
+  border-radius: 0;
+  &:hover { background-color: $accent; }
+  &:hover label { color: $base; }
+}
+.bar-platinum .pt-logo { padding: 1px 10px 1px 8px; }
+.bar-platinum .pt-ws {
+  label { color: $overlay0; }
+  &.occupied label { color: $text; }
+  &.active { background-color: $accent; }
+  &.active label { color: $base; }
+  &.urgent label { color: $red; }
+}
+.bar-platinum .pt-media label { font-weight: normal; }
+.bar-platinum .pt-glyph {
+  font-family: "Symbols Nerd Font", "JetBrainsMono Nerd Font";
+  font-weight: normal;
+  font-size: $font-size + 2px;
+  padding-right: 2px;
+  &.off { color: $overlay0; }
+}
+.bar-platinum .pt-tray { margin: 0 6px; }
+.bar-platinum .pt-clock label { font-feature-settings: "tnum"; }
+// separador vertical con relieve antes del menú de aplicaciones
+.bar-platinum .pt-divider {
+  min-width: 1px;
+  margin: 3px 4px 3px 6px;
+  background-color: $overlay0;
+  border-right: 1px solid lighten($base, 10%);
+}

@@ -90,12 +90,17 @@
           (button :class "accent-dot ${a.selected ? 'selected' : ''}" :style "background-color: ${a.hex};"
                   :onclick "desktopctl appearance set accent ${a.name}" :tooltip {a.name}))))
     (section-title :text "Barra")
-    (box :class "bar-styles" :space-evenly true :spacing 8
-      (for b in {appearance.bar_styles ?: []}
-        (eventbox :cursor "pointer"
+    ;; rejilla de 3 columnas (filas de appearance.bar_style_rows): en una sola fila las tarjetas
+    ;; ensanchaban el panel. Los huecos de la última fila son tarjetas invisibles.
+    (box :class "bar-styles" :orientation "v" :space-evenly false :spacing 8
+     (for row in {appearance.bar_style_rows ?: []}
+      (box :space-evenly true :spacing 8
+      (for b in row
+        (box  ; el hueco ocupa su sitio aunque la tarjeta esté oculta
+        (eventbox :cursor "pointer" :visible {!(b.placeholder ?: false)}
           (button :class "bar-card ${b.selected ? 'selected' : ''}" :onclick "desktopctl appearance set bar_style ${b.id}"
             (box :orientation "v" :space-evenly false :spacing 6
-              ;; miniatura: tres cápsulas separadas, una franja continua o la franja arcade
+              ;; miniatura: tres cápsulas separadas, una franja continua, la franja arcade o la cyber
               (box :class "bar-preview" :space-evenly false :spacing 6
                 (box :class "bar-mini" :visible {b.id == "capsules"} :width 34)
                 (box :class "bar-mini" :visible {b.id == "capsules"} :hexpand true)
@@ -116,6 +121,32 @@
                   (box :hexpand true)
                   (box :class "bar-mini-dot island" :width 18)
                   (box :class "bar-mini-dot red"))
+                ;; cyber: franja negra recta con línea de neón, objetivo al centro y red a la derecha
+                (box :class "bar-mini cyber" :visible {b.id == "cyber"} :hexpand true :space-evenly false :spacing 4
+                  (box :class "bar-mini-dot accent")
+                  (box :class "bar-mini-dot square accent")
+                  (box :class "bar-mini-dot square")
+                  (box :hexpand true)
+                  (box :class "bar-mini-dot square accent" :width 18)
+                  (box :hexpand true)
+                  (box :class "bar-mini-dot square teal" :width 14)
+                  (box :class "bar-mini-dot square accent"))
+                ;; aqua: franja fina de borde a borde, logo y app a la izquierda, extras y hora a la derecha
+                (box :class "bar-mini aqua" :visible {b.id == "aqua"} :hexpand true :space-evenly false :spacing 4
+                  (box :class "bar-mini-dot")
+                  (box :class "bar-mini-dot" :width 14)
+                  (box :class "bar-mini-dot dim")
+                  (box :hexpand true)
+                  (box :class "bar-mini-dot dim")
+                  (box :class "bar-mini-dot" :width 18))
+                ;; platinum: franja gris con línea negra, logo de colores y menú de aplicaciones
+                (box :class "bar-mini platinum" :visible {b.id == "platinum"} :hexpand true :space-evenly false :spacing 4
+                  (box :class "bar-mini-dot square rainbow")
+                  (box :class "bar-mini-dot square ink" :width 12)
+                  (box :class "bar-mini-dot square accent")
+                  (box :hexpand true)
+                  (box :class "bar-mini-dot square ink" :width 16)
+                  (box :class "bar-mini-dot square ink" :width 12))
                 ;; inferior: apps centradas y la franja abajo
                 (box :class "bar-mini" :visible {b.id == "taskbar"} :hexpand true :space-evenly false :spacing 4 :valign "end"
                   (box :class "bar-mini-dot island" :width 14)
@@ -125,7 +156,42 @@
                   (box :class "bar-mini-dot")
                   (box :hexpand true)
                   (box :class "bar-mini-dot island" :width 18)))
-              (label :class "theme-name" :text {b.name}))))))
+              (label :class "theme-name" :text {b.name})))))))))
+    (section-title :text "Lanzador")
+    (box :class "bar-styles" :orientation "v" :space-evenly false :spacing 8
+     (for row in {appearance.launcher_style_rows ?: []}
+      (box :space-evenly true :spacing 8
+      (for l in row
+        (box  ; el hueco ocupa su sitio aunque la tarjeta esté oculta
+        (eventbox :cursor "pointer" :visible {!(l.placeholder ?: false)}
+          (button :class "bar-card ${l.selected ? 'selected' : ''}" :onclick "desktopctl appearance set launcher_style ${l.id}"
+                  :tooltip "Super+R lo abre en el centro; el icono de la barra, junto a él"
+            (box :orientation "v" :space-evenly false :spacing 6
+              ;; miniatura: cuadrícula de iconos, lista de rofi o menú de inicio
+              (box :class "bar-preview launcher-preview" :space-evenly false :halign "fill"
+                (box :visible {l.id == "grid"} :hexpand true :orientation "v" :space-evenly false :spacing 4
+                  (box :class "bar-mini-dot island" :height 6 :hexpand true)
+                  (box :space-evenly true :spacing 4
+                    (box :class "bar-mini-dot square island" :height 14)
+                    (box :class "bar-mini-dot square accent" :height 14)
+                    (box :class "bar-mini-dot square island" :height 14)
+                    (box :class "bar-mini-dot square island" :height 14)))
+                (box :visible {l.id == "rofi"} :hexpand true :orientation "v" :space-evenly false :spacing 3
+                  (box :space-evenly false :spacing 4
+                    (box :class "bar-mini-dot square red" :width 8)
+                    (box :class "bar-mini-dot green" :width 26))
+                  (box :class "bar-mini-dot island" :hexpand true)
+                  (box :class "bar-mini-dot blue" :hexpand true)
+                  (box :class "bar-mini-dot" :width 40 :halign "start"))
+                (box :visible {l.id == "start"} :hexpand true :orientation "v" :space-evenly false :spacing 4
+                  (box :class "bar-mini-dot island" :height 6 :hexpand true)
+                  (box :space-evenly true :spacing 4
+                    (box :class "bar-mini-dot accent")
+                    (box :class "bar-mini-dot")
+                    (box :class "bar-mini-dot")
+                    (box :class "bar-mini-dot"))
+                  (box :class "bar-mini-dot island" :height 6 :width 30 :halign "start")))
+              (label :class "theme-name" :text {l.name})))))))))
     (section-title :text "Fondo de pantalla"
       (box :space-evenly false
         (icon-button :icon "󰉋" :class "flat" :onclick "desktopctl appearance open-wallpaper-dir"

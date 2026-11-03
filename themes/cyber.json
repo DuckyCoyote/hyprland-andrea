@@ -1,0 +1,33 @@
+{
+  "name": "Cyber",
+  "variant": "dark",
+  "accent": "red",
+  "palette": {
+    "rosewater": "#FF8FB1",
+    "flamingo": "#FF2E88",
+    "pink": "#FF0A78",
+    "mauve": "#B0207A",
+    "red": "#FF1F5A",
+    "maroon": "#C2124A",
+    "peach": "#FF6A3D",
+    "yellow": "#F5D547",
+    "green": "#3DF5A0",
+    "teal": "#56E6E5",
+    "sky": "#20ADE2",
+    "sapphire": "#1E8FD0",
+    "blue": "#3D7BFF",
+    "lavender": "#9AA8D8",
+    "text": "#DCE3F0",
+    "subtext1": "#B8C2D9",
+    "subtext0": "#8F9BB8",
+    "overlay2": "#6B7799",
+    "overlay1": "#56617F",
+    "overlay0": "#424C68",
+    "surface2": "#2C3654",
+    "surface1": "#1F2840",
+    "surface0": "#151C2E",
+    "base": "#0A0D16",
+    "mantle": "#05070D",
+    "crust": "#000000"
+  }
+}

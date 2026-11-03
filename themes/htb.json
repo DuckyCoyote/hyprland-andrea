@@ -1,0 +1,33 @@
+{
+  "name": "Hack The Box",
+  "variant": "dark",
+  "accent": "green",
+  "palette": {
+    "rosewater": "#FFCC5C",
+    "flamingo": "#FF8484",
+    "pink": "#CF8DFB",
+    "mauve": "#9F00FF",
+    "red": "#FF3E3E",
+    "maroon": "#D63031",
+    "peach": "#FFAF00",
+    "yellow": "#FFCC5C",
+    "green": "#9FEF00",
+    "teal": "#2EE7B6",
+    "sky": "#5CECC6",
+    "sapphire": "#00A0E4",
+    "blue": "#0086FF",
+    "lavender": "#A4B1CD",
+    "text": "#E0E6F2",
+    "subtext1": "#C5D1EB",
+    "subtext0": "#A4B1CD",
+    "overlay2": "#8799B5",
+    "overlay1": "#6B7D99",
+    "overlay0": "#4F5F7A",
+    "surface2": "#2F3B50",
+    "surface1": "#253044",
+    "surface0": "#1A2332",
+    "base": "#141D2B",
+    "mantle": "#111927",
+    "crust": "#0B121F"
+  }
+}

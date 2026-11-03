@@ -62,7 +62,7 @@
 (defwidget task-start [monitor]
   (eventbox :cursor "pointer"
     (button :class "task-app task-start ${popup.open == 'startmenu' && popup.monitor == monitor ? 'open' : ''}"
-            :tooltip "Inicio" :onclick "desktopctl popup toggle startmenu ${monitor}"
+            :tooltip "Inicio" :onclick "desktopctl popup toggle launcher ${monitor}"
             :onrightclick "desktopctl popup toggle settings ${monitor} appearance"
       (box :orientation "v" :space-evenly false
         (label :class "task-logo" :text "")

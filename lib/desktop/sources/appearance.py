@@ -12,7 +12,11 @@ from ..util import Debouncer, have, run
 
 INT_KEYS = {"font_size": (8, 24), "font_weight": (100, 900), "radius": (0, 24), "spacing": (2, 20), "border_width": (0, 4)}
 BOOL_KEYS = {"transparency", "shadows", "animations"}
-BAR_STYLES = {"capsules": "Cápsulas", "rectangle": "Rectángulo", "arcade": "Arcade", "taskbar": "Inferior"}
+BAR_STYLES = {"capsules": "Cápsulas", "rectangle": "Rectángulo", "arcade": "Arcade", "cyber": "Cyber", "aqua": "Aqua", "platinum": "Platinum",
+              "taskbar": "Inferior"}
+# Ventana que abre el lanzador (Super+R / icono de la barra); sin elegir: «Inicio» con la barra
+# inferior y «Cuadrícula» con las demás
+LAUNCHER_STYLES = {"grid": "Cuadrícula", "rofi": "Rofi", "start": "Inicio"}
 ACCENTS = ["mauve", "lavender", "blue", "sapphire", "sky", "teal", "green", "yellow", "peach", "maroon", "red", "pink", "flamingo", "rosewater"]
 
 
@@ -63,6 +67,12 @@ class AppearanceSource(Source):
             "wallpaper_rows": _rows([{**w, "selected": w["path"] == render.wallpaper_path(ctx)} for w in self.walls], 3),
             "bar_style": _bar_style(ap),
             "bar_styles": [{"id": k, "name": v, "selected": k == _bar_style(ap)} for k, v in BAR_STYLES.items()],
+            "launcher_style": launcher_style(ap),
+            "launcher_styles": [{"id": k, "name": v, "selected": k == launcher_style(ap)} for k, v in LAUNCHER_STYLES.items()],
+            # en filas de 3 (rejilla vertical): en una sola fila las tarjetas ensanchaban el panel
+            "bar_style_rows": _rows([{"id": k, "name": v, "selected": k == _bar_style(ap)} for k, v in BAR_STYLES.items()], 3),
+            "launcher_style_rows": _rows([{"id": k, "name": v, "selected": k == launcher_style(ap)}
+                                          for k, v in LAUNCHER_STYLES.items()], 3),
             "cursor_theme": ap.get("cursor_theme", ""),
             "cursor_size": int(ap.get("cursor_size", 24)),
             "cursor_rows": _rows([{**c, "selected": c["name"] == ap.get("cursor_theme", "")} for c in self.cursors], 3),
@@ -135,6 +145,13 @@ class AppearanceSource(Source):
                     await asyncio.sleep(0.4)
                     await popup.cmd_open(was["open"], was["monitor"], was["tab"])
             return f"bar_style = {value}"
+        elif key == "launcher_style":
+            # se aplica al abrir el lanzador (popup.py elige la ventana): basta con guardarlo
+            if value not in LAUNCHER_STYLES:
+                return f"estilo de lanzador desconocido: {value}"
+            config.set_appearance(key, value)
+            self._publish()
+            return f"launcher_style = {value}"
         elif key == "icon_theme":
             val = value
         elif key == "wallpaper":
@@ -213,3 +230,10 @@ def _rows(items: list, size: int) -> list:
 def _bar_style(ap: dict) -> str:
     style = ap.get("bar_style", "capsules")
     return style if style in BAR_STYLES else "capsules"
+
+
+def launcher_style(ap: dict) -> str:
+    style = ap.get("launcher_style", "")
+    if style in LAUNCHER_STYLES:
+        return style
+    return "start" if _bar_style(ap) == "taskbar" else "grid"
