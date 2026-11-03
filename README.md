@@ -34,7 +34,7 @@ cd ~/Documentos/hyprland/hyprland-desktop
 ```
 
 Después cierra sesión y elige **Hyprland** en el gestor de inicio de sesión.
-Detalles: [docs/installation.md](docs/installation.md).
+Detalles: [docs/installation.md](docs/installation.md). Fuentes, iconos y tema de KDE opcionales: [extras](docs/installation.md#extras-opcionales-fuentes-tema-de-kde-e-iconos).
 
 ## Uso diario
 
