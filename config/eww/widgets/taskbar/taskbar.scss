@@ -12,6 +12,8 @@
   button { @include transition(background-color, opacity); }
   // relleno a la derecha: los glifos Nerd Font son más anchos que su avance y GTK los recorta
   .task-glyph { font-size: $glyph-size; padding: 0 4px 0 1px; }
+  // el abanico de Wi-Fi sobresale más que el resto de glifos: margen extra para que GTK no lo recorte
+  .task-glyph.wifi { padding: 0 7px 0 3px; }
   .task-glyph.busy { color: $overlay1; }
   .task-value { font-size: $font-size - 1px; font-weight: bold; }
   .task-strong { font-size: $font-size - 1px; font-weight: bold; }

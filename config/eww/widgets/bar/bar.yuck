@@ -109,23 +109,30 @@
 
 ;; ── Grupo D: reproductor ────────────────────────────────────────────────────
 (defwidget bar-media [monitor]
-  (box :class "bar-group media-group" :space-evenly false :spacing 10
+  (box :class "bar-group media-group" :space-evenly false
+    (bar-player :monitor monitor :size 32 :class "")))
+
+;; Reproductor de la barra (el de Cápsulas): portada, título/artista y controles. `size` es el
+;; lado de la portada; cada diseño lo ajusta a su altura y escala el resto con su clase.
+(defwidget bar-player [monitor size class]
+  (box :class "bar-player ${class}" :space-evenly false :spacing 10
     (eventbox :cursor "pointer"
       (button :onclick "desktopctl popup toggle media ${monitor}" :onrightclick "desktopctl media cycle"
               :tooltip "${media.player_label ?: ''}: ${media.title ?: ''}"
         (box :space-evenly false :spacing 10
-          (box :class "media-cover ${media.cover == '' ? 'empty' : ''}"
-               :style {media.cover != "" ? "background-image: url('${media.cover}');" : ""}
+          (box :class "media-cover ${media.cover == '' ? 'empty' : ''}" :valign "center"
+               :style {"min-width: ${size}px; min-height: ${size}px;" + (media.cover != "" ? " background-image: url('${media.cover}');" : "")}
             (label :class "glyph" :visible {media.cover == ""} :text {media.player_icon ?: "󰝚"}))
           (box :orientation "v" :space-evenly false :valign "center" :class "media-text"
             (label :class "media-title" :halign "start" :limit-width 16 :text {media.title ?: ""})
             (label :class "media-artist" :halign "start" :limit-width 18 :text {media.artist ?: ""})))))
-    (box :class "media-controls" :space-evenly false :spacing 4
+    (box :class "media-controls" :space-evenly false :spacing 4 :valign "center"
       (icon-button :icon "󰒮" :onclick "desktopctl media previous" :class "flat" :tooltip "Anterior")
       (icon-button :icon {media.playing == true ? "󰏤" : "󰐊"} :onclick "desktopctl media toggle" :class "flat play" :tooltip "Reproducir/Pausar")
       (icon-button :icon "󰒭" :onclick "desktopctl media next" :class "flat" :tooltip "Siguiente"))))
 
 ;; ── Grupo E: indicadores del sistema ────────────────────────────────────────
+
 (defwidget bar-system [monitor modules]
   (box :class "bar-group system-group" :space-evenly false :spacing 14
     ;; Bandeja del sistema (StatusNotifierItem: Discord, Steam…)
@@ -248,12 +255,7 @@
     (label :class "rect-title" :limit-width 48 :text {wm.windows?.[monitor]?.title ?: ""})))
 
 (defwidget rect-media [monitor]
-  (eventbox :cursor "pointer"
-    (button :onclick "desktopctl popup toggle media ${monitor}" :onrightclick "desktopctl media toggle"
-            :tooltip "${media.player_label ?: ''}: ${media.title ?: ''}"
-      (box :space-evenly false :spacing 6
-        (label :class "rect-glyph c-pink" :text {media.playing == true ? "󰎈" : "󰏤"})
-        (label :class "rect-value" :limit-width 28 :text "${media.title ?: ''}${(media.artist ?: '') != '' ? ' · ' + media.artist : ''}")))))
+  (bar-player :monitor monitor :size 26 :class "player-rect"))
 
 (defwidget rect-indicators [monitor modules]
   (box :space-evenly false :spacing 14
@@ -347,22 +349,17 @@
         (eventbox :cursor "pointer"
           (button :class "aws ${ws.state}" :onclick "desktopctl wm focus ${ws.id}"
                   :tooltip "Espacio ${ws.label}${ws.state == 'urgent' ? ' (requiere atención)' : ''}"
-            (image :path "${EWW_CONFIG_DIR}/../../assets/icons/${ws.state == 'active' ? 'pacman' : ws.state == 'empty' ? 'empty' : 'ghost'}.png"
-                   :image-width 18 :image-height 18))))))))
+            ;; pacman/fantasma y, a su lado, los iconos de las apps del espacio (máx. 3, como en Inferior)
+            (box :space-evenly false :spacing 4
+              (image :path "${EWW_CONFIG_DIR}/../../assets/icons/${ws.state == 'active' ? 'pacman' : ws.state == 'empty' ? 'empty' : 'ghost'}.png"
+                     :image-width 18 :image-height 18)
+              (box :class "aws-apps" :visible {arraylength(ws.apps ?: []) > 0} :space-evenly false :spacing 2
+                (for icon in {jq(ws.apps ?: [], '.[0:3]')}
+                  (image :path icon :image-width 14 :image-height 14)))))))))))
 
-;; Reproductor: icono del reproductor, título y los controles en su propia isla
+;; Reproductor: el de Cápsulas a escala de la franja
 (defwidget arcade-media [monitor]
-  (box :space-evenly false :spacing 8
-    (eventbox :cursor "pointer"
-      (button :onclick "desktopctl popup toggle media ${monitor}" :onrightclick "desktopctl media cycle"
-              :tooltip "${media.player_label ?: ''}: ${media.title ?: ''}${(media.artist ?: '') != '' ? ' · ' + media.artist : ''}"
-        (box :space-evenly false :spacing 8
-          (label :class "arcade-glyph c-green" :text {media.player_icon ?: "󰝚"})
-          (label :class "arcade-title" :limit-width 32 :text {media.title ?: ""}))))
-    (box :class "arcade-island arcade-controls" :space-evenly false :spacing 2
-      (icon-button :icon "󰒮" :onclick "desktopctl media previous" :class "flat" :tooltip "Anterior")
-      (icon-button :icon {media.playing == true ? "󰏥" : "󰐍"} :onclick "desktopctl media toggle" :class "flat play" :tooltip "Reproducir/Pausar")
-      (icon-button :icon "󰒭" :onclick "desktopctl media next" :class "flat" :tooltip "Siguiente"))))
+  (bar-player :monitor monitor :size 26 :class "player-arcade"))
 
 (defwidget arcade-indicators [monitor modules]
   (box :class "arcade-island" :space-evenly false :spacing 12
@@ -383,7 +380,7 @@
     (eventbox :cursor "pointer" :visible {network.available == true}
       (button :onclick "desktopctl popup toggle network ${monitor}"
               :tooltip {network.kind == "wifi" ? "Wi-Fi: ${network.ssid}" : network.kind == "ethernet" ? "Ethernet: ${network.ethernet?.connection}" : "Sin conexión"}
-        (label :class "arcade-glyph ${network.kind == 'disconnected' ? 'c-red' : 'c-blue'}" :text {network.glyph ?: "󰤭"})))
+        (label :class "arcade-glyph wifi ${network.kind == 'disconnected' ? 'c-red' : 'c-blue'}" :text {network.glyph ?: "󰤭"})))
     (eventbox :cursor "pointer" :visible {bluetooth.available == true}
       (button :onclick "desktopctl popup toggle bluetooth ${monitor}" :onrightclick "desktopctl bluetooth toggle-power"
               :tooltip {bluetooth.powered != true ? "Bluetooth desactivado" : (bluetooth.connected_count ?: 0) > 0 ? "Bluetooth: ${bluetooth.connected_names}" : "Bluetooth activado"}
@@ -593,14 +590,11 @@
               (label :text {ws.label}))))))))
 
 (defwidget aqua-media [monitor]
-  (eventbox :cursor "pointer"
-    (button :class "aqua-item aqua-media" :onclick "desktopctl popup toggle media ${monitor}" :onrightclick "desktopctl media toggle"
-            :tooltip "${media.player_label ?: ''} · clic: reproductor · derecho: pausa"
-      (box :space-evenly false :spacing 6
-        (label :class "aqua-glyph small" :text {media.playing == true ? "󰎈" : "󰏤"})
-        (label :limit-width 34 :text "${media.title ?: ''}${(media.artist ?: '') != '' ? ' — ' + media.artist : ''}")))))
+  (box :class "aqua-player-wrap"
+    (bar-player :monitor monitor :size 20 :class "player-aqua")))
 
 ;; Extras de la barra de menús: monocromos y sin cifras salvo donde aportan
+
 (defwidget aqua-extras [monitor modules]
   (box :space-evenly false :spacing 2
     (eventbox :cursor "pointer"

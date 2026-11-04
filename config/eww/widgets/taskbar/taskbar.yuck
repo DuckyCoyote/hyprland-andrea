@@ -113,7 +113,7 @@
     (eventbox :cursor "pointer" :visible {network.available == true}
       (button :onclick "desktopctl popup toggle network ${monitor}"
               :tooltip {network.kind == "wifi" ? "Wi-Fi: ${network.ssid}" : network.kind == "ethernet" ? "Ethernet: ${network.ethernet?.connection}" : "Sin conexión"}
-        (label :class "task-glyph ${network.kind == 'disconnected' ? 'c-red' : 'c-blue'}" :text {network.glyph ?: "󰤭"})))
+        (label :class "task-glyph wifi ${network.kind == 'disconnected' ? 'c-red' : 'c-blue'}" :text {network.glyph ?: "󰤭"})))
     (eventbox :cursor "pointer" :visible {bluetooth.available == true}
       (button :onclick "desktopctl popup toggle bluetooth ${monitor}" :onrightclick "desktopctl bluetooth toggle-power"
               :tooltip {bluetooth.powered != true ? "Bluetooth desactivado" : (bluetooth.connected_count ?: 0) > 0 ? "Bluetooth: ${bluetooth.connected_names}" : "Bluetooth activado"}

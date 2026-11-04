@@ -117,7 +117,8 @@ entradas útiles con el mismo aspecto de menú:
 
 - **Aqua** (`mac-dark-theme.webp`): franja fina translúcida, Inter, todo monocromo. Izquierda:
   logo de Garuda (clic: lanzador · derecho: energía), aplicación enfocada en negrita (clic: selector
-  de ventanas), grupo y escritorios como entradas de menú (el activo resaltado) y lo que suena.
+  de ventanas), grupo y escritorios como entradas de menú (el activo resaltado) y el reproductor de Cápsulas a escala
+  (portada de 20 px, título/artista y controles).
   Derecha: `CPU n% RAM n%` (clic: Configuración → Sistema), bandeja, actualizaciones (solo si hay),
   micrófono (solo si está abierto, en naranja como en macOS), Bluetooth, red, volumen, batería,
   buscar (lanzador), «centro de control» (notificaciones; derecho: no molestar) y fecha y hora.
@@ -159,3 +160,9 @@ Configuración → Apariencia → Lanzador (`appearance.launcher_style`): «Cuad
 Posición (`popup.py`, `_placement`): con el atajo de teclado (monitor `focused`) se abre en el
 centro de la pantalla; desde el icono de la barra, pegado a él (debajo con las barras superiores,
 encima y centrado con la inferior).
+
+
+Reproductor: Cápsulas, Rectángulo, Arcade y Aqua comparten `bar-player` (bar.yuck: portada,
+título/artista y anterior/reproducir/siguiente). `:size` fija el lado de la portada (32 en Cápsulas,
+26 en Rectángulo y Arcade, 20 en Aqua) y la clase `player-*` escala textos y botones para que
+cada barra conserve su altura.

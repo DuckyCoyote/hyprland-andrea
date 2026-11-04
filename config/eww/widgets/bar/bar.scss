@@ -51,9 +51,8 @@
 
 // Grupo D
 .media-group { padding: 5px 10px 5px 6px; }
+// tamaño de la portada: lo fija bar-player con :style (cada diseño da el suyo)
 .media-cover {
-  min-width: 32px;
-  min-height: 32px;
   border-radius: $radius-sm;
   background-size: cover;
   background-position: center;
@@ -157,6 +156,8 @@
   button:hover { opacity: 0.8; }
   // relleno a la derecha: los glifos Nerd Font son más anchos que su avance y GTK los recorta
   .arcade-glyph { font-size: $glyph-size + 1px; padding: 0 4px 0 1px; }
+  // el abanico de Wi-Fi sobresale más que el resto de glifos: margen extra para que GTK no lo recorte
+  .arcade-glyph.wifi { padding: 0 7px 0 3px; }
 }
 // Islas internas: un tono más claro que la franja, sin borde
 .arcade-island {
@@ -168,12 +169,18 @@
   padding: 0 8px;
   .arcade-glyph { color: $accent; font-size: $glyph-size + 3px; }
 }
+// Cada espacio es un contenedor como en la barra Inferior: rectángulo redondeado con borde;
+// el activo lleva el borde de acento y los ocupados un fondo suave que envuelve pacman + apps
 .aws {
-  padding: 2px;
-  border-radius: $radius-pill;
-  @include transition(background-color);
+  padding: 1px 6px;
+  border-radius: $radius-sm;
+  border: 2px solid transparent;
+  @include transition(background-color, border-color);
+  .aws-apps { padding-left: 2px; }
   &.empty { opacity: 0.6; }
-  &.urgent { background-color: rgba($red, 0.45); }
+  &.occupied, &.active { background-color: rgba($surface1, 0.45); }
+  &.active { border-color: $accent; }
+  &.urgent { border-color: $red; background-color: rgba($red, 0.2); }
   &:hover { background-color: $hover; }
 }
 .arcade-title { font-weight: bold; font-size: $font-size - 1px; }
@@ -335,7 +342,6 @@
   &.urgent label { color: $peach; }
 }
 .bar-aqua .aqua-group label { font-weight: 600; }
-.bar-aqua .aqua-media label { color: rgba($text, 0.7); }
 .bar-aqua .aqua-stats label { font-size: $font-size; color: rgba($text, 0.7); font-feature-settings: "tnum"; }
 .bar-aqua .aqua-count { font-size: $font-size; }
 .bar-aqua .aqua-tray { margin: 0 6px; }
@@ -386,4 +392,27 @@
   margin: 3px 4px 3px 6px;
   background-color: $overlay0;
   border-right: 1px solid lighten($base, 10%);
+}
+
+// ── Reproductor de Cápsulas dentro de las otras barras (misma estructura, escalado) ──────
+.player-rect, .player-arcade {
+  .media-text { min-width: 110px; }
+  .media-title { font-size: $font-size - 2px; }
+  .media-artist { font-size: $font-size - 3px; }
+  .media-controls .icon-btn { min-width: 22px; min-height: 22px; }
+  .media-controls .glyph { font-size: $font-size + 2px; }
+  .media-controls .play .glyph { font-size: $font-size + 6px; }
+}
+.player-arcade { padding: 0 4px; }
+// Aqua: barra de 26 px; dos líneas pequeñas junto a una portada de 20 px, todo monocromo
+.bar-aqua .player-aqua {
+  margin: 0 6px;
+  .media-cover { border-radius: 4px; }
+  .media-cover .glyph { font-size: $font-size - 1px; }
+  .media-text { min-width: 100px; }
+  label.media-title { font-size: $font-size - 3px; font-weight: 600; color: $text; }
+  label.media-artist { font-size: $font-size - 4px; color: rgba($text, 0.6); }
+  .media-controls .icon-btn { min-width: 18px; min-height: 18px; padding: 0; }
+  .media-controls .glyph { font-family: "Symbols Nerd Font", "JetBrainsMono Nerd Font"; font-size: $font-size + 1px; color: rgba($text, 0.85); }
+  .media-controls .play .glyph { font-size: $font-size + 4px; }
 }
